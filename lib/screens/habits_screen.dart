@@ -551,7 +551,7 @@ class _AddHabitModalState extends State<AddHabitModal> {
                       ),
                     ],
                   ),
-                  if (_notifEnabled) ...[
+                  if (_notifEnabled) ..[
                     const SizedBox(height: 12),
                     TextField(
                       controller: _timeController,
@@ -560,6 +560,63 @@ class _AddHabitModalState extends State<AddHabitModal> {
                         labelStyle: TextStyle(fontFamily: AppTheme.spaceMono, fontSize: 10),
                         border: OutlineInputBorder(borderRadius: BorderRadius.zero),
                       ),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      'DAYS //'.toUpperCase(),
+                      style: TextStyle(
+                        fontFamily: AppTheme.spaceMono,
+                        fontSize: 9,
+                        color: muteColor,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: [
+                        'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'
+                      ].asMap().entries.map((entry) {
+                        int dayIndex = entry.key;
+                        String dayName = entry.value;
+                        bool isSelected = _selectedDays.contains(dayIndex);
+                        return GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              if (isSelected) {
+                                _selectedDays.remove(dayIndex);
+                              } else {
+                                _selectedDays.add(dayIndex);
+                              }
+                              _selectedDays.sort();
+                            });
+                          },
+                          child: Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              border: Border.all(
+                                color: isSelected ? AppTheme.uiColor : borderColor,
+                              ),
+                              color: isSelected
+                                  ? AppTheme.uiColor.withOpacity(0.2)
+                                  : Colors.transparent,
+                            ),
+                            child: Center(
+                              child: Text(
+                                dayName,
+                                style: TextStyle(
+                                  fontFamily: AppTheme.spaceMono,
+                                  fontSize: 9,
+                                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.normal,
+                                  color: isSelected ? AppTheme.uiColor : muteColor,
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      }).toList(),
                     ),
                     const SizedBox(height: 12),
                     Row(
@@ -596,7 +653,7 @@ class _AddHabitModalState extends State<AddHabitModal> {
                   type: _selectedType,
                   category: _selectedCategory,
                   goalMinutes: int.tryParse(_goalController.text) ?? 0,
-                  notif: HabitNotif(
+                  notif: NotificationSettings(
                     enabled: _notifEnabled,
                     time: _timeController.text,
                     days: _selectedDays,

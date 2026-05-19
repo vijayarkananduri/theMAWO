@@ -392,25 +392,52 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void _exportData(BuildContext context, AppState appState) {
-    final data = appState.exportData();
-    Clipboard.setData(ClipboardData(text: data));
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('// Data copied to clipboard.')),
-    );
+    try {
+      final data = appState.exportData();
+      Clipboard.setData(ClipboardData(text: data));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('// Data copied to clipboard. Save it somewhere safe.'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('// Export failed. Please try again.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   void _importData(BuildContext context, AppState appState) async {
     final data = await Clipboard.getData('text/plain');
-    if (data?.text == null) return;
+    if (data?.text == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('// No data in clipboard.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
     
     try {
       await appState.importData(data!.text!);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('// Data imported. Welcome back.')),
+        const SnackBar(
+          content: Text('// Data imported. Welcome back.'),
+          backgroundColor: Colors.green,
+        ),
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('// Invalid data format.')),
+        SnackBar(
+          content: const Text('// Invalid data format. Please check your backup.'),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 3),
+        ),
       );
     }
   }

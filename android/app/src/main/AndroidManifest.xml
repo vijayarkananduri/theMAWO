@@ -25,5 +25,13 @@
             android:name="flutterEmbedding"
             android:value="2" />
     </application>
+    <!-- Required Permissions -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    
+    <!-- Notification Permissions (Android 13+) -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    
+    <!-- Alarm Permissions for Exact Scheduling -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM"/>
 </manifest>

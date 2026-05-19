@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest.dart' as tz;
@@ -35,6 +36,20 @@ class NotificationService {
     await _notificationsPlugin.initialize(
       initializationSettings,
     );
+
+    // Request runtime permission for Android 13+
+    await _requestNotificationPermission();
+  }
+
+  Future<void> _requestNotificationPermission() async {
+    try {
+      await _notificationsPlugin
+          .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin>()?
+          .requestNotificationPermission();
+    } catch (e) {
+      debugPrint('Error requesting notification permission: $e');
+    }
   }
 
   Future<void> showNotification({
@@ -86,6 +101,7 @@ class NotificationService {
       // Our model uses 0=Sunday...6=Saturday
       int flutterDay = day == 0 ? 7 : day;
 
+      // Calculate the next occurrence of the selected day
       var scheduledDate = tz.TZDateTime(
         tz.local,
         now.year,
@@ -95,9 +111,14 @@ class NotificationService {
         minute,
       );
 
-      // If the time has already passed today, schedule for next occurrence
-      if (scheduledDate.isBefore(now)) {
+      // Find the next occurrence of the selected day
+      while (scheduledDate.weekday != flutterDay) {
         scheduledDate = scheduledDate.add(const Duration(days: 1));
+      }
+
+      // If the time has already passed for this day, schedule for next week
+      if (scheduledDate.isBefore(now)) {
+        scheduledDate = scheduledDate.add(const Duration(days: 7));
       }
 
       // We use matchDateTimeComponents to make it weekly
