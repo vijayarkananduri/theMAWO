@@ -31,23 +31,24 @@ class MAWOApp extends StatefulWidget {
 }
 
 class _MAWOAppState extends State<MAWOApp> {
+  final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
+
   @override
   Widget build(BuildContext context) {
     return Consumer<AppState>(
       builder: (context, appState, _) {
         final isDark = appState.settings['isDark'] ?? true;
         return MaterialApp(
+          navigatorKey: _navigatorKey,
           title: 'MAWO — Your Habits, Alive.',
           debugShowCheckedModeBanner: false,
           themeMode: isDark ? ThemeMode.dark : ThemeMode.light,
           theme: AppTheme.light,
           darkTheme: AppTheme.dark,
-          home: Builder(
-            builder: (context) => BootScreen(
-              onComplete: () {
-                Navigator.of(context).pushReplacementNamed('/home');
-              },
-            ),
+          home: BootScreen(
+            onComplete: () {
+              _navigatorKey.currentState?.pushReplacementNamed('/home');
+            },
           ),
           routes: {
             '/home': (context) => const HomeScreen(),
