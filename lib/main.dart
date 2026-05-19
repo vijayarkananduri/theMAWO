@@ -42,10 +42,12 @@ class _MAWOAppState extends State<MAWOApp> {
           themeMode: isDark ? ThemeMode.dark : ThemeMode.light,
           theme: AppTheme.light,
           darkTheme: AppTheme.dark,
-          home: BootScreen(
-            onComplete: () {
-              Navigator.of(context).pushReplacementNamed('/home');
-            },
+          home: Builder(
+            builder: (context) => BootScreen(
+              onComplete: () {
+                Navigator.of(context).pushReplacementNamed('/home');
+              },
+            ),
           ),
           routes: {
             '/home': (context) => const HomeScreen(),
