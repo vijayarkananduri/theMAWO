@@ -59,7 +59,7 @@ Colors deepen. Glows emerge. Your world evolves through 5 phases.
 | 02 | Warm Ember | 50 – 149 |
 | 03 | Radiant Core | 150 – 299 |
 | 04 | Deep Aura | 300 – 499 |
-| 05 | Eclipse King ✦ | 500+ |
+| 05 | Eclipse King  | 500+ |
 
 Your progress becomes the interface. Impossible to ignore.
 
@@ -113,7 +113,7 @@ Your progress becomes the interface. Impossible to ignore.
 MAWO is built on published neuroscience — not guesswork.
 
 > *"Designing Alive UI in MAWO: Stimuli-Driven Interface Evolution for Habit Formation"*  
-> — [Zenodo, 2024](https://zenodo.org/records/16889414)
+> — [Zenodo, 2025](https://zenodo.org/records/16889414)
 
 Key findings:
 - Visual environmental changes activate the brain's reward circuitry more effectively than numerical feedback alone
@@ -136,7 +136,7 @@ ZERO TRACKING        //  No analytics. No ads. No data brokers. Zero.
 
 <div align="center">
 
-### [⬇ Download Latest APK](https://github.com/thevijayarka/MAWO-Fixed/releases)
+### [⬇ Download Latest APK](https://github.com/thevijayarka/theMAWO/releases)
 
 </div>
 
