@@ -9,9 +9,7 @@
 ╚═╝     ╚═╝╚═╝  ╚═╝ ╚══╝╚══╝  ╚═════╝
 ```
 
-**My Adaptive Wellness Organizer**
-
-*Your Habits, Alive.*
+**Your Habits, Alive.**
 
 [![Release](https://img.shields.io/github/v/release/thevijayarka/MAWO-Fixed?color=FF8C00&label=latest&style=flat-square)](https://github.com/thevijayarka/MAWO-Fixed/releases)
 [![License: MIT](https://img.shields.io/badge/license-MIT-FF8C00?style=flat-square)](LICENSE)
@@ -24,17 +22,46 @@
 
 ---
 
-> Most habit apps treat you like a checkbox.  
-> MAWO treats you like a human.  
-> Built on behavioral neuroscience. Designed for real life.
+> Most habit apps look identical on day 1 and day 100.  
+> That's not design — that's indifference.  
+> MAWO is different. Your interface **evolves** as you do.
 
 ---
 
-## // What is MAWO?
+## // The Problem
 
-MAWO is a **free, open-source Android habit tracker** built around the science of how habits actually form — not how productivity gurus wish they did.
+Habit apps are broken. Here's why:
 
-No streaks that punish you for missing a day. No bloated dashboards. No cloud sync begging for your data. Just you, your habits, and a system that adapts to how you actually live.
+```
+ERR_01 //  Checkboxes don't motivate
+           Ticking a box gives zero emotional feedback.
+           Completion without feeling isn't progress.
+
+ERR_02 //  Streaks punish you
+           Miss one day and everything resets.
+           That's not motivation — that's anxiety with a productivity mask.
+
+ERR_03 //  Static interfaces feel dead
+           Your app looks the same on day 1 and day 100.
+           A dead interface reflects nothing back at you.
+```
+
+---
+
+## // The Solution — Alive UI
+
+MAWO's interface **literally transforms** as you build consistency.  
+Colors deepen. Glows emerge. Your world evolves through 5 phases.
+
+| Phase | Name | Fragments |
+|-------|------|-----------|
+| 01 | Fresh Soul | 0 – 49 |
+| 02 | Warm Ember | 50 – 149 |
+| 03 | Radiant Core | 150 – 299 |
+| 04 | Deep Aura | 300 – 499 |
+| 05 | Eclipse King ✦ | 500+ |
+
+Your progress becomes the interface. Impossible to ignore.
 
 ---
 
@@ -50,29 +77,58 @@ No streaks that punish you for missing a day. No bloated dashboards. No cloud sy
 
 ---
 
-## // Core Features
+## // How It Works
 
 ```
-ADAPTIVE TRACKING    //  Built on the MAWO neuroscience framework
-HABIT GLYPHS         //  Visual identity for every habit
-PHASES & XP          //  Progress that means something
-FRAGMENTS            //  Micro-rewards for daily consistency
-BADGES               //  Milestone marks — earned, not handed out
-SMART NOTIFICATIONS  //  End-of-day reminders that respect your schedule
-DAY SELECTION        //  Track habits only on days that matter
-IMPORT / EXPORT      //  Your data is yours. Always.
-FULLY OFFLINE        //  No internet. No accounts. No tracking.
+01  SET INTENTIONS   //  Create daily habits & one-time tasks.
+                         Cognitive, physical, mental — categorized with intent.
+
+02  EARN FRAGMENTS   //  Complete a habit, earn Fragments.
+                         Build streaks, earn bonus XP. Every action has weight.
+
+03  WATCH IT EVOLVE  //  5 phases of visual transformation.
+                         Your progress becomes the interface.
+
+04  COLLECT BADGES   //  First habit. 7-day streak. 100 fragments.
+                         Every milestone earns a permanent mark.
 ```
 
 ---
 
-## // No Compromises
+## // vs Everything Else
 
-| ❌ No ads | ❌ No analytics | ❌ No Firebase |
-|-----------|----------------|----------------|
-| ❌ No accounts | ❌ No cloud sync | ❌ No paywalls |
+| Feature | Standard App | MAWO |
+|---------|-------------|------|
+| Interface evolves with progress | ✗ | ✓ |
+| Local storage only | ✗ | ✓ |
+| No account needed | ✗ | ✓ |
+| Works offline | ✗ | ✓ |
+| Zero data collected | ✗ | ✓ |
+| Research-backed | ✗ | ✓ |
 
-Everything runs locally on your device. Always.
+---
+
+## // The Research
+
+MAWO is built on published neuroscience — not guesswork.
+
+> *"Designing Alive UI in MAWO: Stimuli-Driven Interface Evolution for Habit Formation"*  
+> — [Zenodo, 2024](https://zenodo.org/records/16889414)
+
+Key findings:
+- Visual environmental changes activate the brain's reward circuitry more effectively than numerical feedback alone
+- Progressive interface evolution creates a sense of ownership over digital space — increasing habit adherence
+- Multi-sensory feedback (color, depth, motion) triggers dopamine responses similar to game progression systems
+
+---
+
+## // Privacy — Your Data Stays Yours
+
+```
+100% LOCAL STORAGE   //  Nothing leaves your phone. No cloud. No breach risk.
+WORKS OFFLINE        //  Full functionality, no internet required.
+ZERO TRACKING        //  No analytics. No ads. No data brokers. Zero.
+```
 
 ---
 
@@ -84,8 +140,6 @@ Everything runs locally on your device. Always.
 
 </div>
 
-> Install from GitHub Releases. Enable "Install from unknown sources" in your Android settings if prompted.
-
 ---
 
 ## // Built With
@@ -96,32 +150,23 @@ Everything runs locally on your device. Always.
 
 ---
 
-## // The Research Behind It
-
-MAWO isn't just an app — it's part of the **Alive UI** research project, exploring adaptive, human-centered interface design in the field of HCI.
-
-- 🔬 Research: [themawo.netlify.app](https://themawo.netlify.app)
-- 👤 Portfolio: [vijayarka.netlify.app](https://vijayarka.netlify.app)
-
----
-
 ## // License
 
-MIT — do whatever you want, just keep it open.  
-See [LICENSE](LICENSE) for full terms.
+MIT — free forever, open forever.  
+See [LICENSE](LICENSE).
 
 ---
 
 ## // Contributing
 
 Pull requests are welcome.  
-For major changes, open an issue first so we can align.
+For major changes, open an issue first.
 
 ---
 
 <div align="center">
 
-*Made with obsession by [Vijayarka Nanduri](https://vijayarka.netlify.app)*  
-*Independent HCI Researcher · Alive UI Project*
+*Built by [Vijayarka Nanduri](https://vijayarka.netlify.app) · Independent HCI Researcher*  
+*[Website](https://mawo.netlify.app) · [Research Paper](https://zenodo.org/records/16889414) · [Portfolio](https://vijayarka.netlify.app)*
 
 </div>
