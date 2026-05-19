@@ -551,7 +551,7 @@ class _AddHabitModalState extends State<AddHabitModal> {
                       ),
                     ],
                   ),
-                  if (_notifEnabled) ..[
+                  if (_notifEnabled) ...[
                     const SizedBox(height: 12),
                     TextField(
                       controller: _timeController,

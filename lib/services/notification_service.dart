@@ -43,10 +43,12 @@ class NotificationService {
 
   Future<void> _requestNotificationPermission() async {
     try {
-      await _notificationsPlugin
+      final androidPlugin = _notificationsPlugin
           .resolvePlatformSpecificImplementation<
-              AndroidFlutterLocalNotificationsPlugin>()?
-          .requestNotificationPermission();
+              AndroidFlutterLocalNotificationsPlugin>();
+      if (androidPlugin != null) {
+        await androidPlugin.requestNotificationsPermission();
+      }
     } catch (e) {
       debugPrint('Error requesting notification permission: $e');
     }
