@@ -69,8 +69,8 @@ Your progress becomes the interface. Impossible to ignore.
 
 <div align="center">
 
-| Home | Habits | Badges | Settings |
-|------|--------|--------|----------|
+| Home |                          Habits |                            Badges |                            Settings |
+|------|                         --------|                           --------|                           ----------|
 | ![Home](screenshots/home.jpg) | ![Habits](screenshots/habits.jpg) | ![Badges](screenshots/badges.jpg) | ![Settings](screenshots/settings.jpg) |
 
 </div>
