@@ -1,0 +1,642 @@
+import 'dart:math';
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:mawo/models/habit.dart';
+import 'package:mawo/providers/app_state.dart';
+import 'package:mawo/theme/app_theme.dart';
+import 'package:mawo/screens/habits_screen.dart';
+import 'package:mawo/screens/logs_screen.dart';
+import 'package:mawo/screens/badges_screen.dart';
+import 'package:mawo/screens/stats_screen.dart';
+import 'package:mawo/screens/settings_screen.dart';
+
+class HomeScreen extends StatefulWidget {
+  const HomeScreen({Key? key}) : super(key: key);
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  int _currentIndex = 0;
+
+  final List<Widget> _screens = [
+    const HomeContent(),
+    const HabitsScreen(),
+    const LogsScreen(),
+    const BadgesScreen(),
+    const StatsScreen(),
+    const SettingsScreen(),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark ? AppTheme.darkBg : AppTheme.lightBg;
+    final borderColor = isDark ? AppTheme.darkBorder : AppTheme.lightBorder;
+
+    return Scaffold(
+      body: _screens[_currentIndex],
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          border: Border(top: BorderSide(color: borderColor)),
+        ),
+        child: BottomNavigationBar(
+          currentIndex: _currentIndex,
+          onTap: (index) {
+            setState(() {
+              _currentIndex = index;
+            });
+          },
+          backgroundColor: bgColor,
+          selectedItemColor: AppTheme.uiColor,
+          unselectedItemColor: isDark ? AppTheme.darkMuted : AppTheme.lightMuted,
+          type: BottomNavigationBarType.fixed,
+          elevation: 0,
+          selectedLabelStyle: const TextStyle(
+            fontFamily: AppTheme.spaceMono,
+            fontSize: 9,
+            fontWeight: FontWeight.w700,
+          ),
+          unselectedLabelStyle: const TextStyle(
+            fontFamily: AppTheme.spaceMono,
+            fontSize: 9,
+          ),
+          items: const [
+            BottomNavigationBarItem(
+              icon: Icon(Icons.home_outlined),
+              activeIcon: Icon(Icons.home),
+              label: 'HOME',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.list_outlined),
+              activeIcon: Icon(Icons.list),
+              label: 'HABITS',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.history_outlined),
+              activeIcon: Icon(Icons.history),
+              label: 'LOGS',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.emoji_events_outlined),
+              activeIcon: Icon(Icons.emoji_events),
+              label: 'BADGES',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.analytics_outlined),
+              activeIcon: Icon(Icons.analytics),
+              label: 'STATS',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.settings_outlined),
+              activeIcon: Icon(Icons.settings),
+              label: 'SETTINGS',
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class HomeContent extends StatelessWidget {
+  const HomeContent({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<AppState>(
+      builder: (context, appState, _) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        final bgColor = isDark ? AppTheme.darkBg : AppTheme.lightBg;
+        final muteColor = isDark ? AppTheme.darkMuted : AppTheme.lightMuted;
+
+        return CustomScrollView(
+          slivers: [
+            SliverAppBar(
+              title: const Text(
+                'MAWO',
+                style: TextStyle(
+                  fontFamily: AppTheme.spaceMono,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 2,
+                ),
+              ),
+              backgroundColor: bgColor,
+              floating: true,
+              snap: true,
+            ),
+            SliverToBoxAdapter(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Greeting
+                    Text(
+                      '// Welcome. Let\'s make your habits alive.',
+                      style: TextStyle(
+                        fontFamily: AppTheme.spaceMono,
+                        fontSize: 10,
+                        color: muteColor,
+                        letterSpacing: 0.07,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Phase Card
+                    PhaseCard(appState: appState),
+                    const SizedBox(height: 20),
+
+                    // Home Glyph
+                    GlyphStrip(appState: appState),
+                    const SizedBox(height: 20),
+
+                    // Stats Row
+                    StatsRow(appState: appState),
+                    const SizedBox(height: 20),
+
+                    // Daily Habits
+                    HabitsList(appState: appState, type: 'daily'),
+                    const SizedBox(height: 20),
+
+                    // One-time Tasks
+                    HabitsList(appState: appState, type: 'onetime'),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class PhaseCard extends StatelessWidget {
+  final AppState appState;
+
+  const PhaseCard({Key? key, required this.appState}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final borderColor = isDark ? AppTheme.darkBorder : AppTheme.lightBorder;
+    final surfaceColor = isDark ? AppTheme.darkSurface : AppTheme.lightSurface;
+    final textColor = isDark ? AppTheme.darkText : AppTheme.lightText;
+    final muteColor = isDark ? AppTheme.darkMuted : AppTheme.lightMuted;
+    final dimColor = isDark ? AppTheme.darkDim : AppTheme.lightDim;
+
+    final phases = [
+      {'num': 1, 'name': 'Fresh Soul', 'min': 0},
+      {'num': 2, 'name': 'Warm Ember', 'min': 500},
+      {'num': 3, 'name': 'Radiant Core', 'min': 1500},
+      {'num': 4, 'name': 'Deep Aura', 'min': 3000},
+      {'num': 5, 'name': 'Eclipse King', 'min': 5000},
+    ];
+
+    int currentPhaseIdx = 0;
+    for (int i = phases.length - 1; i >= 0; i--) {
+      if (appState.totalFragments >= (phases[i]['min'] as int)) {
+        currentPhaseIdx = i;
+        break;
+      }
+    }
+
+    final phase = phases[currentPhaseIdx];
+    final nextPhase =
+        currentPhaseIdx < phases.length - 1 ? phases[currentPhaseIdx + 1] : null;
+
+    double progress = nextPhase != null
+        ? (appState.totalFragments - (phase['min'] as int)) /
+            ((nextPhase['min'] as int) - (phase['min'] as int))
+        : 1.0;
+    progress = progress.clamp(0.0, 1.0);
+
+    return Container(
+      decoration: BoxDecoration(
+        border: Border.all(color: borderColor),
+        color: surfaceColor,
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'PHASE 0${phase['num']} //',
+                    style: const TextStyle(
+                      fontFamily: AppTheme.spaceMono,
+                      fontSize: 9,
+                      color: AppTheme.uiColor,
+                      letterSpacing: 0.12,
+                    ),
+                  ),
+                  Text(
+                    phase['name'] as String,
+                    style: TextStyle(
+                      fontFamily: AppTheme.spaceGrotesk,
+                      fontSize: 22,
+                      fontWeight: FontWeight.w700,
+                      color: textColor,
+                    ),
+                  ),
+                ],
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    appState.totalFragments.toString(),
+                    style: const TextStyle(
+                      fontFamily: AppTheme.spaceMono,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: AppTheme.uiColor,
+                    ),
+                  ),
+                  Text(
+                    'fragments',
+                    style: TextStyle(
+                      fontFamily: AppTheme.spaceMono,
+                      fontSize: 9,
+                      color: muteColor,
+                    ),
+                  ),
+                  Text(
+                    '${appState.totalXP} XP',
+                    style: TextStyle(
+                      fontFamily: AppTheme.spaceMono,
+                      fontSize: 9,
+                      color: muteColor,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          ClipRRect(
+            child: LinearProgressIndicator(
+              value: progress,
+              backgroundColor: isDark ? AppTheme.darkDim : AppTheme.lightDim,
+              valueColor:
+                  const AlwaysStoppedAnimation<Color>(AppTheme.uiColor),
+              minHeight: 3,
+            ),
+          ),
+          const SizedBox(height: 5),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                nextPhase != null
+                    ? '${appState.totalFragments} / ${nextPhase['min']} to ${nextPhase['name']}'
+                    : 'MAX PHASE REACHED',
+                style: TextStyle(
+                  fontFamily: AppTheme.spaceMono,
+                  fontSize: 8,
+                  color: dimColor,
+                  letterSpacing: 0.06,
+                ),
+              ),
+              Text(
+                '${(progress * 100).toInt()}%',
+                style: TextStyle(
+                  fontFamily: AppTheme.spaceMono,
+                  fontSize: 8,
+                  color: dimColor,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class GlyphStrip extends StatelessWidget {
+  final AppState appState;
+
+  const GlyphStrip({Key? key, required this.appState}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final borderColor = isDark ? AppTheme.darkBorder : AppTheme.lightBorder;
+    final muteColor = isDark ? AppTheme.darkMuted : AppTheme.lightMuted;
+
+    final habits = appState.habits.where((h) => h.type == 'daily').toList();
+    final itemCount = habits.isNotEmpty ? habits.length : 24;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              habits.isNotEmpty ? 'HABIT GLYPHS //' : 'PHASE INTENSITY //',
+              style: TextStyle(
+                fontFamily: AppTheme.spaceMono,
+                fontSize: 9,
+                color: muteColor,
+                letterSpacing: 0.1,
+              ),
+            ),
+            Text(
+              '${appState.getTodayCompletions().length} / ${habits.length} done',
+              style: const TextStyle(
+                fontFamily: AppTheme.spaceMono,
+                fontSize: 9,
+                color: AppTheme.uiColor,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 6,
+          runSpacing: 6,
+          children: List.generate(itemCount, (i) {
+            bool isDone = false;
+            if (habits.isNotEmpty) {
+              isDone = appState.isCompletedToday(habits[i].id);
+            } else {
+              isDone = i < appState.totalFragments;
+            }
+
+            return Container(
+              width: 14,
+              height: 14,
+              decoration: BoxDecoration(
+                color: isDone ? AppTheme.uiColor : Colors.transparent,
+                border: Border.all(
+                  color: isDone ? AppTheme.uiColor : borderColor,
+                  width: 1.5,
+                ),
+                borderRadius: BorderRadius.circular(2),
+              ),
+              child: habits.isNotEmpty
+                  ? Center(
+                      child: Text(
+                        habits[i].name.substring(0, 1).toUpperCase(),
+                        style: TextStyle(
+                          fontSize: 7,
+                          fontWeight: FontWeight.bold,
+                          color: isDone ? Colors.black : borderColor,
+                        ),
+                      ),
+                    )
+                  : null,
+            );
+          }),
+        ),
+      ],
+    );
+  }
+}
+
+class StatsRow extends StatelessWidget {
+  final AppState appState;
+
+  const StatsRow({Key? key, required this.appState}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final borderColor = isDark ? AppTheme.darkBorder : AppTheme.lightBorder;
+    final surfaceColor = isDark ? AppTheme.darkSurface : AppTheme.lightSurface;
+
+    return Container(
+      decoration: BoxDecoration(
+        border: Border.all(color: borderColor),
+        color: surfaceColor,
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: _StatCell(
+              value: appState.totalFragments.toString(),
+              label: 'Fragments',
+            ),
+          ),
+          Container(width: 1, height: 60, color: borderColor),
+          Expanded(
+            child: _StatCell(
+              value: appState
+                  .getTodayCompletions()
+                  .length
+                  .toString(),
+              label: 'Today',
+            ),
+          ),
+          Container(width: 1, height: 60, color: borderColor),
+          Expanded(
+            child: _StatCell(
+              value: appState.totalCompletions.toString(),
+              label: 'Data Collected',
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StatCell extends StatelessWidget {
+  final String value;
+  final String label;
+
+  const _StatCell({
+    Key? key,
+    required this.value,
+    required this.label,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final muteColor = isDark ? AppTheme.darkMuted : AppTheme.lightMuted;
+
+    return Padding(
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        children: [
+          Text(
+            value,
+            style: const TextStyle(
+              fontFamily: AppTheme.spaceMono,
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+              color: AppTheme.uiColor,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontFamily: AppTheme.spaceMono,
+              fontSize: 7,
+              color: muteColor,
+              letterSpacing: 0.08,
+              textBaseline: TextBaseline.alphabetic,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class HabitsList extends StatelessWidget {
+  final AppState appState;
+  final String type;
+
+  const HabitsList({
+    Key? key,
+    required this.appState,
+    required this.type,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final muteColor = isDark ? AppTheme.darkMuted : AppTheme.lightMuted;
+    final habits = appState.habits.where((h) => h.type == type).toList();
+
+    if (habits.isEmpty && type == 'onetime') return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          type == 'daily' ? 'DAILY HABITS //' : 'ONE-TIME TASKS //',
+          style: TextStyle(
+            fontFamily: AppTheme.spaceMono,
+            fontSize: 9,
+            color: muteColor,
+            letterSpacing: 0.1,
+          ),
+        ),
+        const SizedBox(height: 12),
+        if (habits.isEmpty)
+          Text(
+            '// No habits added yet.',
+            style: TextStyle(
+              fontFamily: AppTheme.spaceMono,
+              fontSize: 10,
+              color: isDark ? AppTheme.darkDim : AppTheme.lightDim,
+            ),
+          )
+        else
+          ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: habits.length,
+            separatorBuilder: (context, index) => const SizedBox(height: 8),
+            itemBuilder: (context, index) => HabitItem(
+              habit: habits[index],
+              isCompleted: appState.isCompletedToday(habits[index].id),
+              onToggle: () => appState.toggleHabit(habits[index].id, type),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class HabitItem extends StatelessWidget {
+  final Habit habit;
+  final bool isCompleted;
+  final VoidCallback onToggle;
+
+  const HabitItem({
+    Key? key,
+    required this.habit,
+    required this.isCompleted,
+    required this.onToggle,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final borderColor = isDark ? AppTheme.darkBorder : AppTheme.lightBorder;
+    final surfaceColor = isDark ? AppTheme.darkSurface : AppTheme.lightSurface;
+    final textColor = isDark ? AppTheme.darkText : AppTheme.lightText;
+    final muteColor = isDark ? AppTheme.darkMuted : AppTheme.lightMuted;
+
+    return GestureDetector(
+      onTap: onToggle,
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: surfaceColor,
+          border: Border.all(
+            color: isCompleted ? AppTheme.uiColor : borderColor,
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 18,
+              height: 18,
+              decoration: BoxDecoration(
+                color: isCompleted ? AppTheme.uiColor : Colors.transparent,
+                border: Border.all(
+                  color: isCompleted ? AppTheme.uiColor : borderColor,
+                ),
+              ),
+              child: isCompleted
+                  ? const Icon(Icons.check, size: 12, color: Colors.black)
+                  : null,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    habit.name.toUpperCase(),
+                    style: TextStyle(
+                      fontFamily: AppTheme.spaceMono,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: isCompleted ? AppTheme.uiColor : textColor,
+                      decoration: isCompleted ? TextDecoration.lineThrough : null,
+                    ),
+                  ),
+                  if (habit.goalMinutes > 0)
+                    Text(
+                      'GOAL: ${habit.goalMinutes} MIN',
+                      style: TextStyle(
+                        fontFamily: AppTheme.spaceMono,
+                        fontSize: 8,
+                        color: muteColor,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            if (isCompleted)
+              const Text(
+                '+1 ◆',
+                style: TextStyle(
+                  fontFamily: AppTheme.spaceMono,
+                  fontSize: 10,
+                  color: AppTheme.uiColor,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
