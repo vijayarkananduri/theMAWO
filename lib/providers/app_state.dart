@@ -136,7 +136,7 @@ class AppState extends ChangeNotifier {
     habits = [];
     completions = [];
     user = {'name': '', 'createdAt': DateTime.now().millisecondsSinceEpoch};
-    settings = {'eodEnabled': false, 'eodTime': '21:00'};
+    settings = {'eodEnabled': false, 'eodTime': '21:00', 'isDark': true};
     totalFragments = 0;
     totalXP = 0;
     level = 1;
