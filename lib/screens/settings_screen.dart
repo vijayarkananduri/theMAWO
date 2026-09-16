@@ -113,6 +113,33 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                 const SizedBox(height: 12),
 
+                _SettingsSection(
+                  label: 'FEEDBACK //',
+                  child: Column(
+                    children: [
+                      _FeedbackToggle(
+                        label: 'HAPTICS',
+                        description: 'Tactile response on meaningful actions',
+                        value: appState.hapticsEnabled,
+                        onChanged: (value) => appState.setFeedbackSettings(haptics: value),
+                        borderColor: borderColor,
+                        muteColor: muteColor,
+                      ),
+                      const SizedBox(height: 14),
+                      _FeedbackToggle(
+                        label: 'COMPLETION FX',
+                        description: 'Glow, motion, and milestone feedback',
+                        value: appState.completionFxEnabled,
+                        onChanged: (value) => appState.setFeedbackSettings(completionFx: value),
+                        borderColor: borderColor,
+                        muteColor: muteColor,
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 12),
+
                 // Profile
                 _SettingsSection(
                   label: 'PROFILE //',
@@ -529,6 +556,67 @@ class _SettingsSection extends StatelessWidget {
         const SizedBox(height: 12),
         child,
         const SizedBox(height: 24),
+      ],
+    );
+  }
+}
+
+class _FeedbackToggle extends StatelessWidget {
+  final String label;
+  final String description;
+  final bool value;
+  final ValueChanged<bool> onChanged;
+  final Color borderColor;
+  final Color muteColor;
+
+  const _FeedbackToggle({
+    required this.label,
+    required this.description,
+    required this.value,
+    required this.onChanged,
+    required this.borderColor,
+    required this.muteColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label, style: const TextStyle(fontFamily: AppTheme.spaceMono, fontSize: 11, fontWeight: FontWeight.w700)),
+              const SizedBox(height: 3),
+              Text(description, style: TextStyle(fontFamily: AppTheme.spaceMono, fontSize: 8, color: muteColor)),
+            ],
+          ),
+        ),
+        Semantics(
+          label: label,
+          toggled: value,
+          child: GestureDetector(
+            onTap: () => onChanged(!value),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 180),
+              width: 44,
+              height: 24,
+              decoration: BoxDecoration(
+                color: value ? AppTheme.uiColor : Colors.transparent,
+                border: Border.all(color: value ? AppTheme.uiColor : borderColor),
+              ),
+              child: Align(
+                alignment: value ? Alignment.centerRight : Alignment.centerLeft,
+                child: Container(
+                  width: 18,
+                  height: 18,
+                  margin: const EdgeInsets.symmetric(horizontal: 3),
+                  color: value ? Colors.black : muteColor,
+                ),
+              ),
+            ),
+          ),
+        ),
       ],
     );
   }
