@@ -107,26 +107,30 @@ class NotificationService {
         scheduledDate = scheduledDate.add(Duration(days: isOneTime ? 1 : 7));
       }
 
-      await _notificationsPlugin.zonedSchedule(
-        baseId + day,
-        'MAWO // Habit Alert',
-        'Time for $habitName${goalMinutes > 0 ? ' ($goalMinutes min goal)' : ''}',
-        scheduledDate,
-        const NotificationDetails(
-          android: AndroidNotificationDetails(
-            'mawo_habits',
-            'Habit Reminders',
-            channelDescription: 'Scheduled reminders for your habits',
-            importance: Importance.high,
-            priority: Priority.high,
+      try {
+        await _notificationsPlugin.zonedSchedule(
+          baseId + day,
+          'MAWO // Habit Alert',
+          'Time for $habitName${goalMinutes > 0 ? ' ($goalMinutes min goal)' : ''}',
+          scheduledDate,
+          const NotificationDetails(
+            android: AndroidNotificationDetails(
+              'mawo_habits',
+              'Habit Reminders',
+              channelDescription: 'Scheduled reminders for your habits',
+              importance: Importance.high,
+              priority: Priority.high,
+            ),
+            iOS: DarwinNotificationDetails(),
           ),
-          iOS: DarwinNotificationDetails(),
-        ),
-        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-        uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
-        matchDateTimeComponents: isOneTime ? null : DateTimeComponents.dayOfWeekAndTime,
-      );
-      debugPrint('MAWO reminder scheduled: $habitName at $scheduledDate; one-time=$isOneTime');
+          androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+          uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
+          matchDateTimeComponents: isOneTime ? null : DateTimeComponents.dayOfWeekAndTime,
+        );
+        debugPrint('MAWO reminder scheduled: $habitName at $scheduledDate; one-time=$isOneTime');
+      } catch (e) {
+        debugPrint('MAWO reminder scheduling failed for $habitName: $e');
+      }
     }
   }
 
@@ -155,7 +159,7 @@ class NotificationService {
         android: AndroidNotificationDetails('mawo_general', 'General Notifications', channelDescription: 'Standard MAWO notifications', importance: Importance.max, priority: Priority.high),
         iOS: DarwinNotificationDetails(),
       ),
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
       uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
       matchDateTimeComponents: DateTimeComponents.time,
     );

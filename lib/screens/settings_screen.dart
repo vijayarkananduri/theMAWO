@@ -597,7 +597,19 @@ class _ExternalLink extends StatelessWidget {
   const _ExternalLink({required this.label, required this.url, required this.borderColor, required this.surfaceColor});
   @override
   Widget build(BuildContext context) => GestureDetector(
-    onTap: () async { final uri = Uri.parse(url); if (await canLaunchUrl(uri)) await launchUrl(uri, mode: LaunchMode.externalApplication); },
+    onTap: () async {
+      final uri = Uri.parse(url);
+      try {
+        final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+        if (!opened && context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('// No browser available on this device.')));
+        }
+      } catch (_) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('// Could not open this link.')));
+        }
+      }
+    },
     child: Container(
       width: double.infinity, padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(border: Border.all(color: borderColor), color: surfaceColor),
