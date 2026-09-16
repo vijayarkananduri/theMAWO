@@ -29,8 +29,9 @@ class AppState extends ChangeNotifier {
   int daysActive = 0;
   late SharedPreferences _prefs;
   bool hasSeenIntro = false;
+  bool hasSeenTour = false;
 
-  bool get onboardingComplete => hasSeenIntro;
+  bool get onboardingComplete => hasSeenIntro && hasSeenTour;
 
   static const phaseThresholds = [0, 50, 150, 300, 500];
   bool get hapticsEnabled => settings['hapticsEnabled'] ?? true;
@@ -46,6 +47,7 @@ class AppState extends ChangeNotifier {
   Future<void> loadData() async {
     _prefs = await SharedPreferences.getInstance();
     hasSeenIntro = _prefs.getBool('mawo_intro_seen') ?? false;
+    hasSeenTour = _prefs.getBool('mawo_tour_seen') ?? false;
     final json = _prefs.getString('mawo_data');
     if (json != null) {
       try {
@@ -65,9 +67,13 @@ class AppState extends ChangeNotifier {
         debugPrint('Error loading data: $e');
       }
     }
-    await rescheduleAllNotifications();
-    if (settings['eodEnabled'] == true) {
-      await NotificationService().scheduleEndOfDayReminder(time: settings['eodTime'] as String);
+    try {
+      await rescheduleAllNotifications();
+      if (settings['eodEnabled'] == true) {
+        await NotificationService().scheduleEndOfDayReminder(time: settings['eodTime'] as String);
+      }
+    } catch (e) {
+      debugPrint('MAWO notification restore skipped: $e');
     }
     notifyListeners();
   }
@@ -75,6 +81,12 @@ class AppState extends ChangeNotifier {
   Future<void> completeOnboarding() async {
     hasSeenIntro = true;
     await _prefs.setBool('mawo_intro_seen', true);
+    notifyListeners();
+  }
+
+  Future<void> completeTour() async {
+    hasSeenTour = true;
+    await _prefs.setBool('mawo_tour_seen', true);
     notifyListeners();
   }
 

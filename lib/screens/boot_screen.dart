@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:mawo/theme/app_theme.dart';
+import 'package:mawo/services/feedback_service.dart';
 
 class BootScreen extends StatefulWidget {
   final VoidCallback onComplete;
+  final bool hapticsEnabled;
 
   const BootScreen({
     Key? key,
     required this.onComplete,
+    this.hapticsEnabled = true,
   }) : super(key: key);
 
   @override
@@ -108,6 +111,7 @@ class _BootScreenState extends State<BootScreen>
               text: "Let's make your habits,",
               textController: _textController,
               textColor: textColor,
+              hapticsEnabled: widget.hapticsEnabled,
             ),
 
             const SizedBox(height: 20),
@@ -189,12 +193,14 @@ class TypingAnimation extends StatefulWidget {
   final String text;
   final AnimationController textController;
   final Color textColor;
+  final bool hapticsEnabled;
 
   const TypingAnimation({
     Key? key,
     required this.text,
     required this.textController,
     required this.textColor,
+    this.hapticsEnabled = true,
   }) : super(key: key);
 
   @override
@@ -211,11 +217,11 @@ class _TypingAnimationState extends State<TypingAnimation> {
   }
 
   void _updateText() {
-    setState(() {
-      _displayedChars = (widget.textController.value *
-              widget.text.length)
-          .round();
-    });
+    final next = (widget.textController.value * widget.text.length).round();
+    if (next != _displayedChars && next > 0) {
+      if (widget.hapticsEnabled) FeedbackService.selection(enabled: true);
+      setState(() => _displayedChars = next);
+    }
   }
 
   @override

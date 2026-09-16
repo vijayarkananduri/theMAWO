@@ -29,6 +29,9 @@ jobs:
       - name: Get dependencies
         run: flutter pub get
 
+      - name: Analyze Dart source
+        run: flutter analyze
+
       - name: Build APK
         run: flutter build apk --release
 
@@ -37,6 +40,21 @@ jobs:
         with:
           name: mawo-apk
           path: build/app/outputs/flutter-apk/app-release.apk
+          retention-days: 30
+
+      - name: Package source with resolved dependencies
+        run: |
+          mkdir -p /tmp/mawo-source-bundle
+          rsync -a --exclude='.git' --exclude='build' --exclude='.dart_tool' ./ /tmp/mawo-source-bundle/
+          cp pubspec.lock /tmp/mawo-source-bundle/pubspec.lock
+          cd /tmp
+          zip -qr mawo-source-bundle.zip mawo-source-bundle
+
+      - name: Upload source bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: mawo-source-bundle
+          path: /tmp/mawo-source-bundle.zip
           retention-days: 30
 
       - name: Create Release

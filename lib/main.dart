@@ -5,15 +5,24 @@ import 'package:mawo/screens/home_screen.dart';
 import 'package:mawo/providers/app_state.dart';
 import 'package:mawo/theme/app_theme.dart';
 import 'package:mawo/services/notification_service.dart';
+import 'package:mawo/screens/onboarding_tour_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   final notificationService = NotificationService();
-  await notificationService.initializeNotifications();
+  try {
+    await notificationService.initializeNotifications();
+  } catch (e) {
+    debugPrint('MAWO notification initialization skipped: $e');
+  }
 
   final appState = AppState();
-  await appState.loadData();
+  try {
+    await appState.loadData();
+  } catch (e) {
+    debugPrint('MAWO data load skipped: $e');
+  }
 
   runApp(
     ChangeNotifierProvider<AppState>(
@@ -45,18 +54,30 @@ class _MAWOAppState extends State<MAWOApp> {
           themeMode: isDark ? ThemeMode.dark : ThemeMode.light,
           theme: AppTheme.light,
           darkTheme: AppTheme.dark,
-          home: appState.onboardingComplete
-              ? const HomeScreen()
-              : BootScreen(
+          home: !appState.hasSeenIntro
+              ? BootScreen(
+                  hapticsEnabled: appState.hapticsEnabled,
                   onComplete: () async {
                     await appState.completeOnboarding();
                     if (mounted) {
                       _navigatorKey.currentState?.pushReplacement(
-                        MaterialPageRoute(builder: (_) => const HomeScreen()),
+                        MaterialPageRoute(builder: (_) => const OnboardingTourScreen()),
                       );
                     }
                   },
-                ),
+                )
+              : !appState.hasSeenTour
+                  ? OnboardingTourScreen(
+                      onComplete: () async {
+                        await appState.completeTour();
+                        if (mounted) {
+                          _navigatorKey.currentState?.pushReplacement(
+                            MaterialPageRoute(builder: (_) => const HomeScreen()),
+                          );
+                        }
+                      },
+                    )
+                  : const HomeScreen(),
           routes: {
             '/home': (context) => const HomeScreen(),
           },
