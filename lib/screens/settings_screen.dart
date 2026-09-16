@@ -366,14 +366,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 MainAxisAlignment.spaceBetween,
                             children: [
                               Text(
-                                'IMPORT DATA (CLIPBOARD)',
+                                'IMPORT DATA (JSON FILE)',
                                 style: TextStyle(
                                   fontFamily: AppTheme.spaceMono,
                                   fontSize: 10,
                                   color: textColor,
                                 ),
                               ),
-                              const Icon(Icons.paste, size: 16),
+                              const Icon(Icons.folder_open, size: 16),
                             ],
                           ),
                         ),
@@ -444,23 +444,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  void _importData(BuildContext context, AppState appState) async {
-    final data = await Clipboard.getData('text/plain');
-    if (data?.text == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('// No data in clipboard.'),
-          backgroundColor: Colors.orange,
-        ),
-      );
-      return;
-    }
-    
+  Future<void> _importData(BuildContext context, AppState appState) async {
     try {
-      await appState.importData(data!.text!);
+      final result = await FilePicker.platform.pickFiles(
+        dialogTitle: 'Choose MAWO JSON backup',
+        type: FileType.custom,
+        allowedExtensions: ['json'],
+        withData: true,
+      );
+      if (result == null) return;
+      final selected = result.files.single;
+      final contents = selected.bytes != null
+          ? String.fromCharCodes(selected.bytes!)
+          : selected.path == null
+              ? null
+              : await File(selected.path!).readAsString();
+      if (contents == null) throw const FormatException('No file data');
+      await appState.importData(contents);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('// Data imported. Welcome back.'),
+          content: Text('// JSON backup imported. Welcome back.'),
           backgroundColor: Colors.green,
         ),
       );

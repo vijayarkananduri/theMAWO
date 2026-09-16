@@ -135,7 +135,7 @@ class HomeContent extends StatelessWidget {
                   children: [
                     // Greeting
                     Text(
-                      '// Welcome. Let\'s make your habits alive.',
+                      _dayGreeting(appState),
                       style: TextStyle(
                         fontFamily: AppTheme.spaceMono,
                         fontSize: 10,
@@ -171,6 +171,19 @@ class HomeContent extends StatelessWidget {
         );
       },
     );
+  }
+
+  String _dayGreeting(AppState appState) {
+    final hour = DateTime.now().hour;
+    final period = hour < 12
+        ? 'GOOD MORNING'
+        : hour < 18
+            ? 'GOOD AFTERNOON'
+            : 'GOOD EVENING';
+    final name = (appState.user['name'] as String? ?? '').trim();
+    return name.isEmpty
+        ? '// $period. Let\'s make your habits alive.'
+        : '// $period, ${name.toUpperCase()}. Let\'s make your habits alive.';
   }
 }
 
