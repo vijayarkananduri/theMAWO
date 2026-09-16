@@ -32,21 +32,17 @@ class _HabitsScreenState extends State<HabitsScreen> {
             ),
             backgroundColor: bgColor,
             elevation: 0,
-            actions: [
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: GestureDetector(
-                  onTap: () => _showAddHabitModal(context, appState),
-                  child: const Icon(Icons.add),
-                ),
-              ),
-            ],
+            actions: const [],
           ),
           body: SingleChildScrollView(
             padding: const EdgeInsets.all(20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                Center(
+                  child: _AddHabitButton(onTap: () => _showAddHabitModal(context, appState)),
+                ),
+                const SizedBox(height: 24),
                 // Daily Habits
                 const _SectionHeader(label: 'DAILY //'),
                 const SizedBox(height: 12),
@@ -150,6 +146,20 @@ class _HabitsScreenState extends State<HabitsScreen> {
       ),
     );
   }
+}
+
+class _AddHabitButton extends StatelessWidget {
+  final VoidCallback onTap;
+  const _AddHabitButton({required this.onTap});
+  @override
+  Widget build(BuildContext context) => GestureDetector(
+    onTap: onTap,
+    child: Container(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+      decoration: BoxDecoration(border: Border.all(color: AppTheme.uiColor), color: AppTheme.uiColor.withOpacity(0.08)),
+      child: const Row(mainAxisSize: MainAxisSize.min, children: [Icon(Icons.add, color: AppTheme.uiColor, size: 18), SizedBox(width: 10), Text('TAP TO ADD HABIT', style: TextStyle(fontFamily: AppTheme.spaceMono, fontSize: 10, color: AppTheme.uiColor, fontWeight: FontWeight.w700, letterSpacing: 1))]),
+    ),
+  );
 }
 
 class _SectionHeader extends StatelessWidget {

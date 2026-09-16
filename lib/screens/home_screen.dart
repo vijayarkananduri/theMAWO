@@ -37,7 +37,9 @@ class _HomeScreenState extends State<HomeScreen> {
     final borderColor = isDark ? AppTheme.darkBorder : AppTheme.lightBorder;
 
     return Scaffold(
-      body: _screens[_currentIndex],
+      body: _currentIndex == 0
+          ? HomeContent(onAddHabit: () => setState(() => _currentIndex = 1))
+          : _screens[_currentIndex],
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           border: Border(top: BorderSide(color: borderColor)),
@@ -102,7 +104,8 @@ class _HomeScreenState extends State<HomeScreen> {
 }
 
 class HomeContent extends StatelessWidget {
-  const HomeContent({Key? key}) : super(key: key);
+  final VoidCallback? onAddHabit;
+  const HomeContent({Key? key, this.onAddHabit}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -158,11 +161,11 @@ class HomeContent extends StatelessWidget {
                     const SizedBox(height: 20),
 
                     // Daily Habits
-                    HabitsList(appState: appState, type: 'daily'),
+                    HabitsList(appState: appState, type: 'daily', onAddHabit: onAddHabit),
                     const SizedBox(height: 20),
 
                     // One-time Tasks
-                    HabitsList(appState: appState, type: 'onetime'),
+                    HabitsList(appState: appState, type: 'onetime', onAddHabit: onAddHabit),
                   ],
                 ),
               ),
@@ -512,11 +515,13 @@ class _StatCell extends StatelessWidget {
 class HabitsList extends StatelessWidget {
   final AppState appState;
   final String type;
+  final VoidCallback? onAddHabit;
 
   const HabitsList({
     Key? key,
     required this.appState,
     required this.type,
+    this.onAddHabit,
   }) : super(key: key);
 
   @override
@@ -541,12 +546,22 @@ class HabitsList extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         if (habits.isEmpty)
-          Text(
-            '// No habits added yet.',
-            style: TextStyle(
-              fontFamily: AppTheme.spaceMono,
-              fontSize: 10,
-              color: isDark ? AppTheme.darkDim : AppTheme.lightDim,
+          GestureDetector(
+            onTap: onAddHabit,
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+              decoration: BoxDecoration(
+                border: Border.all(color: AppTheme.uiColor.withOpacity(0.55)),
+                color: AppTheme.uiColor.withOpacity(0.05),
+              ),
+              child: const Column(
+                children: [
+                  Icon(Icons.add, color: AppTheme.uiColor, size: 22),
+                  SizedBox(height: 8),
+                  Text('TAP TO ADD A HABIT', style: TextStyle(fontFamily: AppTheme.spaceMono, fontSize: 10, color: AppTheme.uiColor, fontWeight: FontWeight.w700, letterSpacing: 1)),
+                ],
+              ),
             ),
           )
         else

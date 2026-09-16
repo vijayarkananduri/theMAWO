@@ -28,6 +28,9 @@ class AppState extends ChangeNotifier {
   int longestStreak = 0;
   int daysActive = 0;
   late SharedPreferences _prefs;
+  bool hasSeenIntro = false;
+
+  bool get onboardingComplete => hasSeenIntro;
 
   static const phaseThresholds = [0, 50, 150, 300, 500];
   bool get hapticsEnabled => settings['hapticsEnabled'] ?? true;
@@ -42,6 +45,7 @@ class AppState extends ChangeNotifier {
 
   Future<void> loadData() async {
     _prefs = await SharedPreferences.getInstance();
+    hasSeenIntro = _prefs.getBool('mawo_intro_seen') ?? false;
     final json = _prefs.getString('mawo_data');
     if (json != null) {
       try {
@@ -61,7 +65,35 @@ class AppState extends ChangeNotifier {
         debugPrint('Error loading data: $e');
       }
     }
+    await rescheduleAllNotifications();
+    if (settings['eodEnabled'] == true) {
+      await NotificationService().scheduleEndOfDayReminder(time: settings['eodTime'] as String);
+    }
     notifyListeners();
+  }
+
+  Future<void> completeOnboarding() async {
+    hasSeenIntro = true;
+    await _prefs.setBool('mawo_intro_seen', true);
+    notifyListeners();
+  }
+
+  Future<void> rescheduleAllNotifications() async {
+    final service = NotificationService();
+    for (final habit in habits) {
+      await service.cancelHabitNotifications(habit.id);
+      if (habit.notif?.enabled == true) {
+        await service.scheduleNotification(
+          habitId: habit.id,
+          habitName: habit.name,
+          time: habit.notif!.time,
+          days: habit.notif!.days,
+          followup: habit.notif!.followup,
+          goalMinutes: habit.goalMinutes,
+          isOneTime: habit.type == 'onetime',
+        );
+      }
+    }
   }
 
   String exportData() => jsonEncode({
@@ -108,7 +140,18 @@ class AppState extends ChangeNotifier {
   List<Completion> getTodayCompletions() => completions.where((c) => c.date == today).toList();
 
   void setUserName(String name) { user['name'] = name; saveData(); notifyListeners(); }
-  void setEODSettings(bool enabled, [String? time]) { settings['eodEnabled'] = enabled; if (time != null) settings['eodTime'] = time; saveData(); notifyListeners(); }
+  Future<void> setEODSettings(bool enabled, [String? time]) async {
+    settings['eodEnabled'] = enabled;
+    if (time != null) settings['eodTime'] = time;
+    final service = NotificationService();
+    if (enabled) {
+      await service.scheduleEndOfDayReminder(time: settings['eodTime'] as String);
+    } else {
+      await service.cancelEndOfDayReminder();
+    }
+    await saveData();
+    notifyListeners();
+  }
   void toggleTheme() { settings['isDark'] = !(settings['isDark'] ?? true); saveData(); notifyListeners(); }
   void setFeedbackSettings({bool? haptics, bool? completionFx}) { if (haptics != null) settings['hapticsEnabled'] = haptics; if (completionFx != null) settings['completionFxEnabled'] = completionFx; saveData(); notifyListeners(); }
 
@@ -191,5 +234,11 @@ class AppState extends ChangeNotifier {
   void addHabit(Habit habit) { habits.add(habit); _updateHabitNotifications(habit); saveData(); notifyListeners(); }
   void updateHabit(String id, Habit updated) { final index = habits.indexWhere((h) => h.id == id); if (index != -1) { habits[index] = updated; _updateHabitNotifications(updated); saveData(); notifyListeners(); } }
   void deleteHabit(String id) { habits.removeWhere((h) => h.id == id); completions.removeWhere((c) => c.habitId == id); NotificationService().cancelHabitNotifications(id); saveData(); notifyListeners(); }
-  void _updateHabitNotifications(Habit habit) { final ns = NotificationService(); ns.cancelHabitNotifications(habit.id); if (habit.notif != null && habit.notif!.enabled) { ns.scheduleNotification(habitId: habit.id, habitName: habit.name, time: habit.notif!.time, days: habit.notif!.days, followup: habit.notif!.followup, goalMinutes: habit.goalMinutes, isOneTime: habit.type == 'onetime'); } }
+  Future<void> _updateHabitNotifications(Habit habit) async {
+    final ns = NotificationService();
+    await ns.cancelHabitNotifications(habit.id);
+    if (habit.notif?.enabled == true) {
+      await ns.scheduleNotification(habitId: habit.id, habitName: habit.name, time: habit.notif!.time, days: habit.notif!.days, followup: habit.notif!.followup, goalMinutes: habit.goalMinutes, isOneTime: habit.type == 'onetime');
+    }
+  }
 }

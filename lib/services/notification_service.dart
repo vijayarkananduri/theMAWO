@@ -12,6 +12,9 @@ class NotificationService {
 
   Future<void> initializeNotifications() async {
     tz.initializeTimeZones();
+    // MAWO currently ships with the creator's deployment timezone. This keeps
+    // scheduled reminders aligned with the device used for the release build.
+    try { tz.setLocalLocation(tz.getLocation('Asia/Kolkata')); } catch (_) {}
     const initializationSettings = InitializationSettings(
       android: AndroidInitializationSettings('@mipmap/ic_launcher'),
       iOS: DarwinInitializationSettings(
@@ -29,6 +32,12 @@ class NotificationService {
       'Habit Reminders',
       description: 'Scheduled reminders for your MAWO habits',
       importance: Importance.high,
+    ));
+    await androidPlugin?.createNotificationChannel(const AndroidNotificationChannel(
+      'mawo_general',
+      'General Notifications',
+      description: 'Standard MAWO notifications',
+      importance: Importance.max,
     ));
     await _requestNotificationPermission();
     await _requestExactAlarmPermission();
@@ -128,6 +137,32 @@ class NotificationService {
     final minute = int.tryParse(match.group(2)!);
     if (hour == null || minute == null || hour > 23 || minute > 59) return null;
     return (hour, minute);
+  }
+
+  Future<void> scheduleEndOfDayReminder({required String time}) async {
+    await _notificationsPlugin.cancel(9001);
+    final parsed = _parseTime(time);
+    if (parsed == null) return;
+    final now = tz.TZDateTime.now(tz.local);
+    var scheduled = tz.TZDateTime(tz.local, now.year, now.month, now.day, parsed.$1, parsed.$2);
+    if (scheduled.isBefore(now)) scheduled = scheduled.add(const Duration(days: 1));
+    await _notificationsPlugin.zonedSchedule(
+      9001,
+      'MAWO // Daily Check-in',
+      'Your habits are still waiting for you. Close the loop before the day ends.',
+      scheduled,
+      const NotificationDetails(
+        android: AndroidNotificationDetails('mawo_general', 'General Notifications', channelDescription: 'Standard MAWO notifications', importance: Importance.max, priority: Priority.high),
+        iOS: DarwinNotificationDetails(),
+      ),
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
+      matchDateTimeComponents: DateTimeComponents.time,
+    );
+  }
+
+  Future<void> cancelEndOfDayReminder() async {
+    await _notificationsPlugin.cancel(9001);
   }
 
   Future<void> cancelHabitNotifications(String habitId) async {

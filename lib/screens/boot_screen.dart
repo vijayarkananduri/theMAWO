@@ -30,17 +30,17 @@ class _BootScreenState extends State<BootScreen>
     );
 
     _textController = AnimationController(
-      duration: const Duration(milliseconds: 3000),
+      duration: const Duration(milliseconds: 1900),
       vsync: this,
     );
 
     _aliveController = AnimationController(
-      duration: const Duration(milliseconds: 1200),
+      duration: const Duration(milliseconds: 360),
       vsync: this,
     );
 
     _contentController = AnimationController(
-      duration: const Duration(milliseconds: 500),
+      duration: const Duration(milliseconds: 320),
       vsync: this,
     );
 
@@ -50,10 +50,10 @@ class _BootScreenState extends State<BootScreen>
   void _startAnimation() async {
     await _logoController.forward();
     await Future.delayed(const Duration(milliseconds: 300));
-    _textController.forward();
-    await Future.delayed(const Duration(milliseconds: 500));
-    _aliveController.forward();
-    await Future.delayed(const Duration(milliseconds: 1300));
+    await _textController.forward();
+    await Future.delayed(const Duration(milliseconds: 80));
+    await _aliveController.forward();
+    await Future.delayed(const Duration(milliseconds: 160));
     _contentController.forward();
   }
 

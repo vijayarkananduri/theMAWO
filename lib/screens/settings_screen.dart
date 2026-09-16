@@ -5,6 +5,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:mawo/providers/app_state.dart';
 import 'package:mawo/theme/app_theme.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({Key? key}) : super(key: key);
@@ -322,6 +323,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                 const SizedBox(height: 12),
 
+                _SettingsSection(
+                  label: 'ABOUT //',
+                  child: Column(
+                    children: [
+                      _ExternalLink(label: 'MY PORTFOLIO', url: 'https://vijayarka.netlify.app', borderColor: borderColor, surfaceColor: surfaceColor),
+                      const SizedBox(height: 8),
+                      _ExternalLink(label: 'RESEARCH PAPER', url: 'https://zenodo.org/records/16889414', borderColor: borderColor, surfaceColor: surfaceColor),
+                    ],
+                  ),
+                ),
                 // Data
                 _SettingsSection(
                   label: 'DATA //',
@@ -576,6 +587,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
     );
   }
+}
+
+class _ExternalLink extends StatelessWidget {
+  final String label;
+  final String url;
+  final Color borderColor;
+  final Color surfaceColor;
+  const _ExternalLink({required this.label, required this.url, required this.borderColor, required this.surfaceColor});
+  @override
+  Widget build(BuildContext context) => GestureDetector(
+    onTap: () async { final uri = Uri.parse(url); if (await canLaunchUrl(uri)) await launchUrl(uri, mode: LaunchMode.externalApplication); },
+    child: Container(
+      width: double.infinity, padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(border: Border.all(color: borderColor), color: surfaceColor),
+      child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text(label, style: const TextStyle(fontFamily: AppTheme.spaceMono, fontSize: 10)), const Icon(Icons.open_in_new, size: 15)]),
+    ),
+  );
 }
 
 class _SettingsSection extends StatelessWidget {

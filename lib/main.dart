@@ -45,11 +45,18 @@ class _MAWOAppState extends State<MAWOApp> {
           themeMode: isDark ? ThemeMode.dark : ThemeMode.light,
           theme: AppTheme.light,
           darkTheme: AppTheme.dark,
-          home: BootScreen(
-            onComplete: () {
-              _navigatorKey.currentState?.pushReplacementNamed('/home');
-            },
-          ),
+          home: appState.onboardingComplete
+              ? const HomeScreen()
+              : BootScreen(
+                  onComplete: () async {
+                    await appState.completeOnboarding();
+                    if (mounted) {
+                      _navigatorKey.currentState?.pushReplacement(
+                        MaterialPageRoute(builder: (_) => const HomeScreen()),
+                      );
+                    }
+                  },
+                ),
           routes: {
             '/home': (context) => const HomeScreen(),
           },
