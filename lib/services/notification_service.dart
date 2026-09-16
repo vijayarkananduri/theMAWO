@@ -87,43 +87,40 @@ class NotificationService {
     required List<int> days,
     required bool followup,
     required int goalMinutes,
+    required bool isOneTime,
   }) async {
-    // Parse HH:mm
-    final parts = time.split(':');
-    final hour = int.parse(parts[0]);
-    final minute = int.parse(parts[1]);
+    final parsed = _parseTime(time);
+    if (parsed == null) return;
+    final hour = parsed.$1;
+    final minute = parsed.$2;
 
     final now = tz.TZDateTime.now(tz.local);
     
     // Generate a unique ID for this habit's notification
     final int baseId = habitId.hashCode.abs();
 
-    for (int day in days) {
+    if (days.isEmpty) return;
+
+    // One-time tasks use only the first selected day and do not repeat.
+    final scheduleDays = isOneTime ? [0] : days;
+    for (int day in scheduleDays) {
       // flutter_local_notifications uses 1=Monday...7=Sunday
       // Our model uses 0=Sunday...6=Saturday
       int flutterDay = day == 0 ? 7 : day;
 
-      // Calculate the next occurrence of the selected day
-      var scheduledDate = tz.TZDateTime(
-        tz.local,
-        now.year,
-        now.month,
-        now.day,
-        hour,
-        minute,
-      );
+      var scheduledDate = tz.TZDateTime(tz.local, now.year, now.month, now.day, hour, minute);
 
-      // Find the next occurrence of the selected day
-      while (scheduledDate.weekday != flutterDay) {
-        scheduledDate = scheduledDate.add(const Duration(days: 1));
+      if (!isOneTime) {
+        while (scheduledDate.weekday != flutterDay) {
+          scheduledDate = scheduledDate.add(const Duration(days: 1));
+        }
       }
 
-      // If the time has already passed for this day, schedule for next week
       if (scheduledDate.isBefore(now)) {
-        scheduledDate = scheduledDate.add(const Duration(days: 7));
+        scheduledDate = scheduledDate.add(Duration(days: isOneTime ? 1 : 7));
       }
 
-      // We use matchDateTimeComponents to make it weekly
+      final repeatsWeekly = !isOneTime;
       await _notificationsPlugin.zonedSchedule(
         baseId + day, // Unique ID per day per habit
         'MAWO // Habit Alert',
@@ -140,9 +137,20 @@ class NotificationService {
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
         uiLocalNotificationDateInterpretation:
             UILocalNotificationDateInterpretation.absoluteTime,
-        matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
+        matchDateTimeComponents: repeatsWeekly
+            ? DateTimeComponents.dayOfWeekAndTime
+            : null,
       );
     }
+  }
+
+  (int, int)? _parseTime(String value) {
+    final match = RegExp(r'^(\d{1,2}):(\d{2})$').firstMatch(value.trim());
+    if (match == null) return null;
+    final hour = int.tryParse(match.group(1)!);
+    final minute = int.tryParse(match.group(2)!);
+    if (hour == null || minute == null || hour > 23 || minute > 59) return null;
+    return (hour, minute);
   }
 
   Future<void> cancelHabitNotifications(String habitId) async {

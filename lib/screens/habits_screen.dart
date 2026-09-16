@@ -342,13 +342,13 @@ class _AddHabitModalState extends State<AddHabitModal> {
       _selectedCategory = widget.habit!.category;
       _notifEnabled = widget.habit!.notif?.enabled ?? false;
       _timeController = TextEditingController(
-          text: widget.habit!.notif?.time ?? '09:00');
+          text: _displayTime(widget.habit!.notif?.time ?? '09:00'));
       _selectedDays = widget.habit!.notif?.days ?? [0, 1, 2, 3, 4, 5, 6];
       _followupEnabled = widget.habit!.notif?.followup ?? false;
     } else {
       _nameController = TextEditingController();
       _goalController = TextEditingController(text: '30');
-      _timeController = TextEditingController(text: '09:00');
+      _timeController = TextEditingController(text: '9:00 AM');
       _selectedType = 'daily';
       _selectedCategory = 'cognitive';
       _notifEnabled = false;
@@ -555,15 +555,18 @@ class _AddHabitModalState extends State<AddHabitModal> {
                     const SizedBox(height: 12),
                     TextField(
                       controller: _timeController,
+                      readOnly: true,
+                      onTap: _pickReminderTime,
                       decoration: const InputDecoration(
-                        labelText: 'TIME (HH:MM)',
+                        labelText: 'TIME',
                         labelStyle: TextStyle(fontFamily: AppTheme.spaceMono, fontSize: 10),
                         border: OutlineInputBorder(borderRadius: BorderRadius.zero),
                       ),
                     ),
                     const SizedBox(height: 12),
+                    if (_selectedType == 'daily') ...[
                     Text(
-                      'DAYS //'.toUpperCase(),
+                      'REPEAT ON //'.toUpperCase(),
                       style: TextStyle(
                         fontFamily: AppTheme.spaceMono,
                         fontSize: 9,
@@ -618,8 +621,17 @@ class _AddHabitModalState extends State<AddHabitModal> {
                         );
                       }).toList(),
                     ),
+                    ],
+                    if (_selectedType == 'onetime')
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          '// This reminder fires once, at the selected time.',
+                          style: TextStyle(fontFamily: AppTheme.spaceMono, fontSize: 8, color: muteColor),
+                        ),
+                      ),
                     const SizedBox(height: 12),
-                    Row(
+                    if (_selectedType == 'daily') Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         const Text(
@@ -655,9 +667,9 @@ class _AddHabitModalState extends State<AddHabitModal> {
                   goalMinutes: int.tryParse(_goalController.text) ?? 0,
                   notif: NotificationSettings(
                     enabled: _notifEnabled,
-                    time: _timeController.text,
-                    days: _selectedDays,
-                    followup: _followupEnabled,
+                    time: _toStoredTime(_timeController.text),
+                    days: _selectedType == 'daily' ? _selectedDays : [0],
+                    followup: _selectedType == 'daily' && _followupEnabled,
                   ),
                 );
 
@@ -691,6 +703,46 @@ class _AddHabitModalState extends State<AddHabitModal> {
       ),
     );
   }
+
+  Future<void> _pickReminderTime() async {
+    final initial = _parseDisplayedTime(_timeController.text) ?? const TimeOfDay(hour: 9, minute: 0);
+    final picked = await showTimePicker(context: context, initialTime: initial);
+    if (picked != null) {
+      setState(() => _timeController.text = _formatStoredTime(picked));
+    }
+  }
+
+  TimeOfDay? _parseDisplayedTime(String value) {
+    final normalized = value.trim().toUpperCase();
+    final match = RegExp(r'^(\d{1,2}):(\d{2})\s*(AM|PM)?$').firstMatch(normalized);
+    if (match == null) return null;
+    var hour = int.tryParse(match.group(1)!);
+    final minute = int.tryParse(match.group(2)!);
+    final meridiem = match.group(3);
+    if (hour == null || minute == null || hour > 23 || minute > 59) return null;
+    if (meridiem == 'PM' && hour < 12) hour += 12;
+    if (meridiem == 'AM' && hour == 12) hour = 0;
+    return TimeOfDay(hour: hour, minute: minute);
+  }
+
+  String _formatStoredTime(TimeOfDay time) => _displayTime(_toStoredTimeFromTimeOfDay(time));
+
+  String _displayTime(String stored) {
+    final parts = stored.split(':');
+    final hour = int.tryParse(parts.first) ?? 9;
+    final minute = int.tryParse(parts.last) ?? 0;
+    final suffix = hour >= 12 ? 'PM' : 'AM';
+    final displayHour = hour % 12 == 0 ? 12 : hour % 12;
+    return '$displayHour:${minute.toString().padLeft(2, '0')} $suffix';
+  }
+
+  String _toStoredTime(String displayed) {
+    final time = _parseDisplayedTime(displayed) ?? const TimeOfDay(hour: 9, minute: 0);
+    return '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
+  }
+
+  String _toStoredTimeFromTimeOfDay(TimeOfDay time) =>
+      '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
 }
 
 class _FormField extends StatelessWidget {

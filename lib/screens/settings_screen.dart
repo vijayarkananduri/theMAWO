@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'dart:io';
+import 'package:file_picker/file_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:mawo/providers/app_state.dart';
 import 'package:mawo/theme/app_theme.dart';
@@ -19,7 +21,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void initState() {
     super.initState();
     _nameController = TextEditingController();
-    _eodTimeController = TextEditingController(text: '21:00');
+    _eodTimeController = TextEditingController(text: _displayTime('21:00'));
   }
 
   @override
@@ -35,7 +37,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       builder: (context, appState, _) {
         _nameController.text = appState.user['name'] ?? '';
         _eodTimeController.text =
-            appState.settings['eodTime'] ?? '21:00';
+            _displayTime(appState.settings['eodTime'] ?? '21:00');
 
         final isDark = Theme.of(context).brightness == Brightness.dark;
         final bgColor = isDark ? AppTheme.darkBg : AppTheme.lightBg;
@@ -249,7 +251,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             onTap: () {
                               appState.setEODSettings(
                                 !appState.settings['eodEnabled'],
-                                _eodTimeController.text,
+                                _toStoredTime(_eodTimeController.text),
                               );
                             },
                             child: Container(
@@ -295,8 +297,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           ),
                         ),
                         const SizedBox(height: 8),
-                        TextField(
-                          controller: _eodTimeController,
+                          TextField(
+                            controller: _eodTimeController,
+                            readOnly: true,
+                            onTap: _pickEodTime,
                           style: const TextStyle(fontFamily: AppTheme.spaceMono, fontSize: 13),
                           decoration: InputDecoration(
                             border: const OutlineInputBorder(borderRadius: BorderRadius.zero),
@@ -309,12 +313,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               borderSide: BorderSide(color: AppTheme.uiColor),
                             ),
                           ),
-                          onChanged: (val) {
-                            appState.setEODSettings(
-                              true,
-                              val,
-                            );
-                          },
+                          onChanged: (_) {},
                         ),
                       ],
                     ],
@@ -341,14 +340,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 MainAxisAlignment.spaceBetween,
                             children: [
                               Text(
-                                'EXPORT DATA (CLIPBOARD)',
+                                'EXPORT DATA (JSON FILE)',
                                 style: TextStyle(
                                   fontFamily: AppTheme.spaceMono,
                                   fontSize: 10,
                                   color: textColor,
                                 ),
                               ),
-                              const Icon(Icons.copy, size: 16),
+                              const Icon(Icons.save_alt, size: 16),
                             ],
                           ),
                         ),
@@ -418,13 +417,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  void _exportData(BuildContext context, AppState appState) {
+  Future<void> _exportData(BuildContext context, AppState appState) async {
     try {
       final data = appState.exportData();
-      Clipboard.setData(ClipboardData(text: data));
+      final path = await FilePicker.platform.saveFile(
+        dialogTitle: 'Save MAWO backup',
+        fileName: 'mawo-backup.json',
+        type: FileType.custom,
+        allowedExtensions: ['json'],
+      );
+      if (path == null) return;
+      await File(path).writeAsString(data);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('// Data copied to clipboard. Save it somewhere safe.'),
+          content: Text('// JSON backup saved. Your data is safe.'),
           backgroundColor: Colors.green,
         ),
       );
@@ -467,6 +473,47 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
       );
     }
+  }
+
+  Future<void> _pickEodTime() async {
+    final initial = _parseDisplayedTime(_eodTimeController.text) ?? const TimeOfDay(hour: 21, minute: 0);
+    final picked = await showTimePicker(context: context, initialTime: initial);
+    if (picked != null) {
+      _eodTimeController.text = _displayTimeFromTimeOfDay(picked);
+      if (mounted) {
+        context.read<AppState>().setEODSettings(true, _toStoredTime(_eodTimeController.text));
+      }
+    }
+  }
+
+  TimeOfDay? _parseDisplayedTime(String value) {
+    final match = RegExp(r'^(\d{1,2}):(\d{2})\s*(AM|PM)?$', caseSensitive: false).firstMatch(value.trim());
+    if (match == null) return null;
+    var hour = int.tryParse(match.group(1)!);
+    final minute = int.tryParse(match.group(2)!);
+    final meridiem = match.group(3)?.toUpperCase();
+    if (hour == null || minute == null || hour > 23 || minute > 59) return null;
+    if (meridiem == 'PM' && hour < 12) hour += 12;
+    if (meridiem == 'AM' && hour == 12) hour = 0;
+    return TimeOfDay(hour: hour, minute: minute);
+  }
+
+  String _displayTime(String stored) {
+    final parts = stored.split(':');
+    final hour = int.tryParse(parts.first) ?? 21;
+    final minute = int.tryParse(parts.last) ?? 0;
+    return _displayTimeFromTimeOfDay(TimeOfDay(hour: hour, minute: minute));
+  }
+
+  String _displayTimeFromTimeOfDay(TimeOfDay time) {
+    final suffix = time.hour >= 12 ? 'PM' : 'AM';
+    final hour = time.hour % 12 == 0 ? 12 : time.hour % 12;
+    return '$hour:${time.minute.toString().padLeft(2, '0')} $suffix';
+  }
+
+  String _toStoredTime(String displayed) {
+    final time = _parseDisplayedTime(displayed) ?? const TimeOfDay(hour: 21, minute: 0);
+    return '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
   }
 
   void _eraseData(BuildContext context, AppState appState) {

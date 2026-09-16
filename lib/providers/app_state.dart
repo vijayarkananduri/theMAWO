@@ -191,5 +191,5 @@ class AppState extends ChangeNotifier {
   void addHabit(Habit habit) { habits.add(habit); _updateHabitNotifications(habit); saveData(); notifyListeners(); }
   void updateHabit(String id, Habit updated) { final index = habits.indexWhere((h) => h.id == id); if (index != -1) { habits[index] = updated; _updateHabitNotifications(updated); saveData(); notifyListeners(); } }
   void deleteHabit(String id) { habits.removeWhere((h) => h.id == id); completions.removeWhere((c) => c.habitId == id); NotificationService().cancelHabitNotifications(id); saveData(); notifyListeners(); }
-  void _updateHabitNotifications(Habit habit) { final ns = NotificationService(); ns.cancelHabitNotifications(habit.id); if (habit.notif != null && habit.notif!.enabled) { ns.scheduleNotification(habitId: habit.id, habitName: habit.name, time: habit.notif!.time, days: habit.notif!.days, followup: habit.notif!.followup, goalMinutes: habit.goalMinutes); } }
+  void _updateHabitNotifications(Habit habit) { final ns = NotificationService(); ns.cancelHabitNotifications(habit.id); if (habit.notif != null && habit.notif!.enabled) { ns.scheduleNotification(habitId: habit.id, habitName: habit.name, time: habit.notif!.time, days: habit.notif!.days, followup: habit.notif!.followup, goalMinutes: habit.goalMinutes, isOneTime: habit.type == 'onetime'); } }
 }
