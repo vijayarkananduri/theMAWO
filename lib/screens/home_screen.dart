@@ -9,6 +9,7 @@ import 'package:mawo/screens/logs_screen.dart';
 import 'package:mawo/screens/badges_screen.dart';
 import 'package:mawo/screens/stats_screen.dart';
 import 'package:mawo/screens/settings_screen.dart';
+import 'package:mawo/services/feedback_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -189,10 +190,10 @@ class PhaseCard extends StatelessWidget {
 
     final phases = [
       {'num': 1, 'name': 'Fresh Soul', 'min': 0},
-      {'num': 2, 'name': 'Warm Ember', 'min': 500},
-      {'num': 3, 'name': 'Radiant Core', 'min': 1500},
-      {'num': 4, 'name': 'Deep Aura', 'min': 3000},
-      {'num': 5, 'name': 'Eclipse King', 'min': 5000},
+      {'num': 2, 'name': 'Warm Ember', 'min': 50},
+      {'num': 3, 'name': 'Radiant Core', 'min': 150},
+      {'num': 4, 'name': 'Deep Aura', 'min': 300},
+      {'num': 5, 'name': 'Eclipse King', 'min': 500},
     ];
 
     int currentPhaseIdx = 0;
@@ -351,7 +352,7 @@ class GlyphStrip extends StatelessWidget {
               ),
             ),
             Text(
-              '${appState.getTodayCompletions().length} / ${habits.length} done',
+              '${appState.getTodayCompletions().where((c) => habits.any((h) => h.id == c.habitId)).length} / ${habits.length} done',
               style: const TextStyle(
                 fontFamily: AppTheme.spaceMono,
                 fontSize: 9,
@@ -552,10 +553,10 @@ class HabitsList extends StatelessWidget {
   }
 }
 
-class HabitItem extends StatelessWidget {
+class HabitItem extends StatefulWidget {
   final Habit habit;
   final bool isCompleted;
-  final VoidCallback onToggle;
+  final CompletionResult Function() onToggle;
 
   const HabitItem({
     Key? key,
@@ -563,6 +564,52 @@ class HabitItem extends StatelessWidget {
     required this.isCompleted,
     required this.onToggle,
   }) : super(key: key);
+
+  @override
+  State<HabitItem> createState() => _HabitItemState();
+}
+
+class _HabitItemState extends State<HabitItem> with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 420),
+  );
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _handleToggle() async {
+    final result = widget.onToggle();
+    final appState = context.read<AppState>();
+    await FeedbackService.selection(enabled: appState.hapticsEnabled);
+    if (result.completed) {
+      if (appState.completionFxEnabled) _controller.forward(from: 0);
+      await FeedbackService.completion(enabled: appState.hapticsEnabled);
+      if (result.badgeUnlocked || result.phaseChanged || result.dailyCycleComplete) {
+        await FeedbackService.milestone(enabled: appState.hapticsEnabled);
+      }
+      if (!mounted || !appState.completionFxEnabled) return;
+      final message = result.phaseChanged
+          ? '// Phase shifted. The world is changing.'
+          : result.badgeUnlocked
+              ? '// New mark acquired: ${result.badgeId}'
+              : result.dailyCycleComplete
+                  ? '// Daily cycle complete. All signals received.'
+                  : '+1 fragment  ·  +${result.xpDelta} XP';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          duration: const Duration(milliseconds: 1800),
+          action: SnackBarAction(label: 'UNDO', onPressed: _handleToggle),
+        ),
+      );
+    } else {
+      await FeedbackService.warning(enabled: appState.hapticsEnabled);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -573,14 +620,21 @@ class HabitItem extends StatelessWidget {
     final muteColor = isDark ? AppTheme.darkMuted : AppTheme.lightMuted;
 
     return GestureDetector(
-      onTap: onToggle,
-      child: Container(
+      onTap: _handleToggle,
+      child: ScaleTransition(
+        scale: Tween<double>(begin: 1, end: 1.025).animate(
+          CurvedAnimation(parent: _controller, curve: Curves.easeOutBack),
+        ),
+        child: AnimatedContainer(
+        duration: const Duration(milliseconds: 220),
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: surfaceColor,
+          color: widget.isCompleted ? Color.alphaBlend(AppTheme.uiColor.withOpacity(0.08), surfaceColor) : surfaceColor,
           border: Border.all(
-            color: isCompleted ? AppTheme.uiColor : borderColor,
+            color: widget.isCompleted ? AppTheme.uiColor : borderColor,
+            width: widget.isCompleted ? 1.5 : 1,
           ),
+          boxShadow: widget.isCompleted ? [BoxShadow(color: AppTheme.uiColor.withOpacity(0.18), blurRadius: 12)] : null,
         ),
         child: Row(
           children: [
@@ -588,12 +642,12 @@ class HabitItem extends StatelessWidget {
               width: 18,
               height: 18,
               decoration: BoxDecoration(
-                color: isCompleted ? AppTheme.uiColor : Colors.transparent,
+                color: widget.isCompleted ? AppTheme.uiColor : Colors.transparent,
                 border: Border.all(
-                  color: isCompleted ? AppTheme.uiColor : borderColor,
+                  color: widget.isCompleted ? AppTheme.uiColor : borderColor,
                 ),
               ),
-              child: isCompleted
+              child: widget.isCompleted
                   ? const Icon(Icons.check, size: 12, color: Colors.black)
                   : null,
             ),
@@ -603,18 +657,18 @@ class HabitItem extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    habit.name.toUpperCase(),
+                    widget.habit.name.toUpperCase(),
                     style: TextStyle(
                       fontFamily: AppTheme.spaceMono,
                       fontSize: 11,
                       fontWeight: FontWeight.w700,
-                      color: isCompleted ? AppTheme.uiColor : textColor,
-                      decoration: isCompleted ? TextDecoration.lineThrough : null,
+                      color: widget.isCompleted ? AppTheme.uiColor : textColor,
+                      decoration: widget.isCompleted ? TextDecoration.lineThrough : null,
                     ),
                   ),
-                  if (habit.goalMinutes > 0)
+                  if (widget.habit.goalMinutes > 0)
                     Text(
-                      'GOAL: ${habit.goalMinutes} MIN',
+                      'GOAL: ${widget.habit.goalMinutes} MIN',
                       style: TextStyle(
                         fontFamily: AppTheme.spaceMono,
                         fontSize: 8,
@@ -624,7 +678,7 @@ class HabitItem extends StatelessWidget {
                 ],
               ),
             ),
-            if (isCompleted)
+            if (widget.isCompleted)
               const Text(
                 '+1 ◆',
                 style: TextStyle(
@@ -635,6 +689,7 @@ class HabitItem extends StatelessWidget {
                 ),
               ),
           ],
+        ),
         ),
       ),
     );
