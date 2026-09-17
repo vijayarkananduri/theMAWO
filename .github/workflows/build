@@ -42,6 +42,16 @@ jobs:
           path: build/app/outputs/flutter-apk/app-release.apk
           retention-days: 30
 
+      - name: Package APK ZIP
+        run: zip -j mawo-apk.zip build/app/outputs/flutter-apk/app-release.apk
+
+      - name: Upload APK ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: mawo-apk-zip
+          path: mawo-apk.zip
+          retention-days: 30
+
       - name: Package source with resolved dependencies
         run: |
           mkdir -p /tmp/mawo-source-bundle

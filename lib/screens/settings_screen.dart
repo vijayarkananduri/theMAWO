@@ -5,9 +5,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:mawo/providers/app_state.dart';
 import 'package:mawo/theme/app_theme.dart';
-import 'package:mawo/services/notification_service.dart';
 import 'package:mawo/services/feedback_service.dart';
-import 'package:mawo/screens/onboarding_tour_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -19,19 +17,16 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   late TextEditingController _nameController;
-  late TextEditingController _eodTimeController;
 
   @override
   void initState() {
     super.initState();
     _nameController = TextEditingController();
-    _eodTimeController = TextEditingController(text: _displayTime('21:00'));
   }
 
   @override
   void dispose() {
     _nameController.dispose();
-    _eodTimeController.dispose();
     super.dispose();
   }
 
@@ -40,8 +35,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Consumer<AppState>(
       builder: (context, appState, _) {
         _nameController.text = appState.user['name'] ?? '';
-        _eodTimeController.text =
-            _displayTime(appState.settings['eodTime'] ?? '21:00');
 
         final isDark = Theme.of(context).brightness == Brightness.dark;
         final bgColor = isDark ? AppTheme.darkBg : AppTheme.lightBg;
@@ -221,172 +214,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                 const SizedBox(height: 12),
 
-                // Notifications
-                _SettingsSection(
-                  label: 'NOTIFICATIONS //',
-                  child: Column(
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'END OF DAY REMINDER',
-                                style: TextStyle(
-                                  fontFamily: AppTheme.spaceMono,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                'Fires if habits incomplete',
-                                style: TextStyle(
-                                  fontFamily: AppTheme.spaceMono,
-                                  fontSize: 9,
-                                  color: isDark ? AppTheme.darkDim : AppTheme.lightDim,
-                                ),
-                              ),
-                            ],
-                          ),
-                          GestureDetector(
-                            onTap: () {
-                              appState.setEODSettings(
-                                !appState.settings['eodEnabled'],
-                                _toStoredTime(_eodTimeController.text),
-                              );
-                            },
-                            child: Container(
-                              width: 44,
-                              height: 24,
-                              decoration: BoxDecoration(
-                                color: appState.settings['eodEnabled']
-                                    ? AppTheme.uiColor
-                                    : borderColor,
-                                borderRadius: BorderRadius.zero,
-                                border: Border.all(color: borderColor),
-                              ),
-                              child: Align(
-                                alignment: appState.settings['eodEnabled']
-                                    ? Alignment.centerRight
-                                    : Alignment.centerLeft,
-                                child: Container(
-                                  width: 18,
-                                  height: 18,
-                                  margin: const EdgeInsets.symmetric(horizontal: 3),
-                                  decoration: BoxDecoration(
-                                    color: appState.settings['eodEnabled']
-                                        ? Colors.black
-                                        : muteColor,
-                                    shape: BoxShape.rectangle,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      if (appState.settings['eodEnabled']) ...[
-                        const SizedBox(height: 12),
-                        const Text(
-                          'REMINDER TIME',
-                          style: TextStyle(
-                            fontFamily: AppTheme.spaceMono,
-                            fontSize: 9,
-                            color: AppTheme.darkMuted,
-                            letterSpacing: 0.14,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                          TextField(
-                            controller: _eodTimeController,
-                            readOnly: true,
-                            onTap: _pickEodTime,
-                          style: const TextStyle(fontFamily: AppTheme.spaceMono, fontSize: 13),
-                          decoration: InputDecoration(
-                            border: const OutlineInputBorder(borderRadius: BorderRadius.zero),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.zero,
-                              borderSide: BorderSide(color: borderColor),
-                            ),
-                            focusedBorder: const OutlineInputBorder(
-                              borderRadius: BorderRadius.zero,
-                              borderSide: BorderSide(color: AppTheme.uiColor),
-                            ),
-                          ),
-                          onChanged: (_) {},
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 8),
-                GestureDetector(
-                  onTap: _runNotificationTest,
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: AppTheme.uiColor),
-                      color: AppTheme.uiColor.withOpacity(0.08),
-                    ),
-                    child: const Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'TEST NOTIFICATION // 2 MINUTES',
-                          style: TextStyle(
-                            fontFamily: AppTheme.spaceMono,
-                            fontSize: 10,
-                            fontWeight: FontWeight.w700,
-                            color: AppTheme.uiColor,
-                          ),
-                        ),
-                        SizedBox(height: 5),
-                        Text(
-                          'If nothing appears, check MAWO notification, alarm, battery, and Do Not Disturb settings.',
-                          style: TextStyle(
-                            fontFamily: AppTheme.spaceMono,
-                            fontSize: 8,
-                            height: 1.5,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                GestureDetector(
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => OnboardingTourScreen(
-                        onComplete: () async => Navigator.of(context).pop(),
-                      ),
-                    ),
-                  ),
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: borderColor),
-                      color: surfaceColor,
-                    ),
-                    child: Text(
-                      'OPEN REMINDER SETUP WIZARD',
-                      style: TextStyle(
-                        fontFamily: AppTheme.spaceMono,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w700,
-                        color: textColor,
-                      ),
-                    ),
-                  ),
-                ),
-
                 const SizedBox(height: 12),
 
                 _SettingsSection(
@@ -553,73 +380,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
       );
     }
-  }
-
-  Future<void> _pickEodTime() async {
-    final initial = _parseDisplayedTime(_eodTimeController.text) ?? const TimeOfDay(hour: 21, minute: 0);
-    final picked = await showTimePicker(context: context, initialTime: initial);
-    if (picked != null) {
-      _eodTimeController.text = _displayTimeFromTimeOfDay(picked);
-      if (mounted) {
-        context.read<AppState>().setEODSettings(true, _toStoredTime(_eodTimeController.text));
-      }
-    }
-  }
-
-  Future<void> _runNotificationTest() async {
-    try {
-      await FeedbackService.selection(
-        enabled: context.read<AppState>().hapticsEnabled,
-      );
-      await NotificationService().scheduleTestNotification();
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('// Test scheduled. Check for a notification in 2 minutes.'),
-          backgroundColor: AppTheme.uiColor,
-          duration: Duration(seconds: 4),
-        ),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('// Test failed. Check notification and Alarms & reminders access.'),
-          backgroundColor: Colors.red,
-          duration: Duration(seconds: 5),
-        ),
-      );
-    }
-  }
-
-  TimeOfDay? _parseDisplayedTime(String value) {
-    final match = RegExp(r'^(\d{1,2}):(\d{2})\s*(AM|PM)?$', caseSensitive: false).firstMatch(value.trim());
-    if (match == null) return null;
-    var hour = int.tryParse(match.group(1)!);
-    final minute = int.tryParse(match.group(2)!);
-    final meridiem = match.group(3)?.toUpperCase();
-    if (hour == null || minute == null || hour > 23 || minute > 59) return null;
-    if (meridiem == 'PM' && hour < 12) hour += 12;
-    if (meridiem == 'AM' && hour == 12) hour = 0;
-    return TimeOfDay(hour: hour, minute: minute);
-  }
-
-  String _displayTime(String stored) {
-    final parts = stored.split(':');
-    final hour = int.tryParse(parts.first) ?? 21;
-    final minute = int.tryParse(parts.last) ?? 0;
-    return _displayTimeFromTimeOfDay(TimeOfDay(hour: hour, minute: minute));
-  }
-
-  String _displayTimeFromTimeOfDay(TimeOfDay time) {
-    final suffix = time.hour >= 12 ? 'PM' : 'AM';
-    final hour = time.hour % 12 == 0 ? 12 : time.hour % 12;
-    return '$hour:${time.minute.toString().padLeft(2, '0')} $suffix';
-  }
-
-  String _toStoredTime(String displayed) {
-    final time = _parseDisplayedTime(displayed) ?? const TimeOfDay(hour: 21, minute: 0);
-    return '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
   }
 
   void _eraseData(BuildContext context, AppState appState) {

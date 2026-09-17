@@ -4,20 +4,10 @@ import 'package:mawo/screens/boot_screen.dart';
 import 'package:mawo/screens/home_screen.dart';
 import 'package:mawo/providers/app_state.dart';
 import 'package:mawo/theme/app_theme.dart';
-import 'package:mawo/services/notification_service.dart';
 import 'package:mawo/screens/onboarding_tour_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  final notificationService = NotificationService();
-  // Notification permissions and exact-alarm support vary by Android version.
-  // They must never prevent Flutter from rendering the app on a cold start.
-  try {
-    await notificationService.initializeNotifications();
-  } catch (e) {
-    debugPrint('MAWO notification initialization skipped: $e');
-  }
 
   final appState = AppState();
   try {

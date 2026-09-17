@@ -5,6 +5,9 @@ import 'package:timezone/data/latest.dart' as tz;
 import 'package:flutter/services.dart';
 
 class NotificationService {
+  // Reminders are intentionally disabled for the first reliable release.
+  // Keep this service isolated so scheduling can be rebuilt later.
+  static const bool enabled = false;
   static final NotificationService _instance = NotificationService._internal();
   factory NotificationService() => _instance;
   NotificationService._internal();
@@ -15,19 +18,22 @@ class NotificationService {
   static const MethodChannel _permissions = MethodChannel('mawo/permissions');
 
   void setTimeZone(String location) {
+    if (!enabled) return;
     tz.setLocalLocation(tz.getLocation(location));
   }
 
   Future<bool> isExactAlarmAllowed() async {
+    if (!enabled) return false;
     return await _permissions.invokeMethod<bool>('isExactAlarmAllowed') ?? false;
   }
 
   Future<void> openExactAlarmSettings() async {
+    if (!enabled) return;
     await _permissions.invokeMethod<bool>('openExactAlarmSettings');
   }
 
   Future<void> initializeNotifications() async {
-    if (_initialized) return;
+    if (!enabled || _initialized) return;
     tz.initializeTimeZones();
     // Keep scheduled times aligned with the app's India locale instead of
     // relying on the timezone package's default location.
@@ -61,8 +67,6 @@ class NotificationService {
       importance: Importance.max,
     ));
 
-    await androidPlugin?.requestNotificationsPermission();
-    await androidPlugin?.requestExactAlarmsPermission();
     _initialized = true;
   }
 
@@ -71,6 +75,7 @@ class NotificationService {
     required String body,
     required int id,
   }) async {
+    if (!enabled) return;
     await _plugin.show(
       id,
       title,
@@ -97,6 +102,7 @@ class NotificationService {
     required int goalMinutes,
     bool isOneTime = false,
   }) async {
+    if (!enabled) return;
     if (!_initialized) await initializeNotifications();
 
     final parts = time.split(':');
@@ -153,6 +159,7 @@ class NotificationService {
   }
 
   Future<void> scheduleTestNotification() async {
+    if (!enabled) return;
     if (!_initialized) await initializeNotifications();
     final scheduled = DateTime.now().add(const Duration(minutes: 2));
     await _plugin.zonedSchedule(
@@ -177,6 +184,7 @@ class NotificationService {
   }
 
   Future<void> scheduleEndOfDayReminder({required String time}) async {
+    if (!enabled) return;
     if (!_initialized) await initializeNotifications();
 
     final parts = time.split(':');
@@ -214,10 +222,12 @@ class NotificationService {
   }
 
   Future<void> cancelEndOfDayReminder() async {
+    if (!enabled) return;
     await _plugin.cancel(_endOfDayNotificationId);
   }
 
   Future<void> cancelHabitNotifications(String habitId) async {
+    if (!enabled) return;
     final baseId = habitId.hashCode.abs() % 100000000;
     for (var i = 0; i < 7; i++) {
       await _plugin.cancel(baseId + i);
@@ -225,6 +235,7 @@ class NotificationService {
   }
 
   Future<void> rescheduleHabits(Iterable<dynamic> habits) async {
+    if (!enabled) return;
     for (final habit in habits) {
       await cancelHabitNotifications(habit.id as String);
       final notification = habit.notif;

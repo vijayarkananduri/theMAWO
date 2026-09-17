@@ -542,125 +542,6 @@ class _AddHabitModalState extends State<AddHabitModal> {
               ),
             ],
 
-            // Notifications
-            _FormField(
-              label: 'NOTIFICATIONS //',
-              child: Column(
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Enable Reminder',
-                        style: TextStyle(fontFamily: AppTheme.spaceMono, fontSize: 11),
-                      ),
-                      Switch(
-                        value: _notifEnabled,
-                        activeColor: AppTheme.uiColor,
-                        onChanged: (val) => setState(() => _notifEnabled = val),
-                      ),
-                    ],
-                  ),
-                  if (_notifEnabled) ...[
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: _timeController,
-                      readOnly: true,
-                      onTap: _pickReminderTime,
-                      decoration: const InputDecoration(
-                        labelText: 'TIME',
-                        labelStyle: TextStyle(fontFamily: AppTheme.spaceMono, fontSize: 10),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.zero),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    if (_selectedType == 'daily') ...[
-                    Text(
-                      'REPEAT ON //'.toUpperCase(),
-                      style: TextStyle(
-                        fontFamily: AppTheme.spaceMono,
-                        fontSize: 9,
-                        color: muteColor,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 6,
-                      runSpacing: 6,
-                      children: [
-                        'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'
-                      ].asMap().entries.map((entry) {
-                        int dayIndex = entry.key;
-                        String dayName = entry.value;
-                        bool isSelected = _selectedDays.contains(dayIndex);
-                        return GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              if (isSelected) {
-                                _selectedDays.remove(dayIndex);
-                              } else {
-                                _selectedDays.add(dayIndex);
-                              }
-                              _selectedDays.sort();
-                            });
-                          },
-                          child: Container(
-                            width: 40,
-                            height: 40,
-                            decoration: BoxDecoration(
-                              border: Border.all(
-                                color: isSelected ? AppTheme.uiColor : borderColor,
-                              ),
-                              color: isSelected
-                                  ? AppTheme.uiColor.withOpacity(0.2)
-                                  : Colors.transparent,
-                            ),
-                            child: Center(
-                              child: Text(
-                                dayName,
-                                style: TextStyle(
-                                  fontFamily: AppTheme.spaceMono,
-                                  fontSize: 9,
-                                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.normal,
-                                  color: isSelected ? AppTheme.uiColor : muteColor,
-                                ),
-                              ),
-                            ),
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                    ],
-                    if (_selectedType == 'onetime')
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          '// This reminder fires once, at the selected time.',
-                          style: TextStyle(fontFamily: AppTheme.spaceMono, fontSize: 8, color: muteColor),
-                        ),
-                      ),
-                    const SizedBox(height: 12),
-                    if (_selectedType == 'daily') Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'Follow-up Reminder',
-                          style: TextStyle(fontFamily: AppTheme.spaceMono, fontSize: 11),
-                        ),
-                        Switch(
-                          value: _followupEnabled,
-                          activeColor: AppTheme.uiColor,
-                          onChanged: (val) =>
-                              setState(() => _followupEnabled = val),
-                        ),
-                      ],
-                    ),
-                  ],
-                ],
-              ),
-            ),
-
             const SizedBox(height: 32),
 
             // Submit Button
@@ -675,12 +556,8 @@ class _AddHabitModalState extends State<AddHabitModal> {
                   type: _selectedType,
                   category: _selectedCategory,
                   goalMinutes: int.tryParse(_goalController.text) ?? 0,
-                  notif: NotificationSettings(
-                    enabled: _notifEnabled,
-                    time: _toStoredTime(_timeController.text),
-                    days: _selectedType == 'daily' ? _selectedDays : [0],
-                    followup: _selectedType == 'daily' && _followupEnabled,
-                  ),
+                  // Reminders are disabled for the first reliable release.
+                  notif: null,
                 );
 
                 if (widget.habit != null) {

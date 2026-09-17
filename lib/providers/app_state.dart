@@ -68,15 +68,7 @@ class AppState extends ChangeNotifier {
         debugPrint('Error loading data: $e');
       }
     }
-    NotificationService().setTimeZone(settings['timezone'] as String? ?? 'Asia/Kolkata');
-    try {
-      await rescheduleAllNotifications();
-      if (settings['eodEnabled'] == true) {
-        await NotificationService().scheduleEndOfDayReminder(time: settings['eodTime'] as String);
-      }
-    } catch (e) {
-      debugPrint('MAWO notification restore skipped: $e');
-    }
+    // Reminders are disabled in the first reliable release.
     notifyListeners();
   }
 
@@ -93,6 +85,7 @@ class AppState extends ChangeNotifier {
   }
 
   Future<void> rescheduleAllNotifications() async {
+    if (!NotificationService.enabled) return;
     final service = NotificationService();
     for (final habit in habits) {
       await service.cancelHabitNotifications(habit.id);
@@ -155,20 +148,14 @@ class AppState extends ChangeNotifier {
 
   void setUserName(String name) { user['name'] = name; saveData(); notifyListeners(); }
   Future<void> setEODSettings(bool enabled, [String? time]) async {
-    settings['eodEnabled'] = enabled;
+    // Kept for data compatibility; reminder controls are intentionally disabled.
+    settings['eodEnabled'] = false;
     if (time != null) settings['eodTime'] = time;
-    final service = NotificationService();
-    if (enabled) {
-      await service.scheduleEndOfDayReminder(time: settings['eodTime'] as String);
-    } else {
-      await service.cancelEndOfDayReminder();
-    }
     await saveData();
     notifyListeners();
   }
   Future<void> setTimeZone(String location) async {
     settings['timezone'] = location;
-    NotificationService().setTimeZone(location);
     await saveData();
     notifyListeners();
   }
@@ -253,8 +240,9 @@ class AppState extends ChangeNotifier {
   int getActiveDays() => completions.map((c) => c.date).toSet().length;
   void addHabit(Habit habit) { habits.add(habit); _updateHabitNotifications(habit); saveData(); notifyListeners(); }
   void updateHabit(String id, Habit updated) { final index = habits.indexWhere((h) => h.id == id); if (index != -1) { habits[index] = updated; _updateHabitNotifications(updated); saveData(); notifyListeners(); } }
-  void deleteHabit(String id) { habits.removeWhere((h) => h.id == id); completions.removeWhere((c) => c.habitId == id); NotificationService().cancelHabitNotifications(id); saveData(); notifyListeners(); }
+  void deleteHabit(String id) { habits.removeWhere((h) => h.id == id); completions.removeWhere((c) => c.habitId == id); saveData(); notifyListeners(); }
   Future<void> _updateHabitNotifications(Habit habit) async {
+    if (!NotificationService.enabled) return;
     final ns = NotificationService();
     await ns.cancelHabitNotifications(habit.id);
     if (habit.notif?.enabled == true) {
