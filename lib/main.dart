@@ -10,11 +10,20 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   final notificationService = NotificationService();
-  await notificationService.initializeNotifications();
+  // Notification permissions and exact-alarm support vary by Android version.
+  // They must never prevent Flutter from rendering the app on a cold start.
+  try {
+    await notificationService.initializeNotifications();
+  } catch (e) {
+    debugPrint('MAWO notification initialization skipped: $e');
+  }
 
   final appState = AppState();
-  await appState.loadData();
-  await notificationService.rescheduleHabits(appState.habits);
+  try {
+    await appState.loadData();
+  } catch (e) {
+    debugPrint('MAWO data restore skipped: $e');
+  }
 
   runApp(
     ChangeNotifierProvider<AppState>(
