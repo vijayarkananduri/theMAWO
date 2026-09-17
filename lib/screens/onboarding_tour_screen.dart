@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:mawo/providers/app_state.dart';
 import 'package:mawo/services/notification_service.dart';
+import 'package:mawo/services/feedback_service.dart';
 import 'package:mawo/theme/app_theme.dart';
 
 class OnboardingTourScreen extends StatefulWidget {
@@ -54,6 +55,7 @@ class _OnboardingTourScreenState extends State<OnboardingTourScreen>
   }
 
   Future<void> _next() async {
+    await FeedbackService.selection(enabled: true);
     if (_page < _steps.length) {
       await _controller.nextPage(
         duration: const Duration(milliseconds: 220),
@@ -112,7 +114,10 @@ class _OnboardingTourScreenState extends State<OnboardingTourScreen>
                 child: PageView.builder(
                   controller: _controller,
                   physics: const NeverScrollableScrollPhysics(),
-                  onPageChanged: (value) => setState(() => _page = value),
+                  onPageChanged: (value) {
+                    FeedbackService.selection(enabled: true);
+                    setState(() => _page = value);
+                  },
                   itemCount: _steps.length + 1,
                   itemBuilder: (_, index) => index < _steps.length
                       ? _GuidePage(step: _steps[index], text: text, muted: muted)

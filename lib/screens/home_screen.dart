@@ -47,6 +47,9 @@ class _HomeScreenState extends State<HomeScreen> {
         child: BottomNavigationBar(
           currentIndex: _currentIndex,
           onTap: (index) {
+            FeedbackService.selection(
+              enabled: context.read<AppState>().hapticsEnabled,
+            );
             setState(() {
               _currentIndex = index;
             });
@@ -115,8 +118,16 @@ class HomeContent extends StatelessWidget {
         final bgColor = isDark ? AppTheme.darkBg : AppTheme.lightBg;
         final muteColor = isDark ? AppTheme.darkMuted : AppTheme.lightMuted;
 
-        return CustomScrollView(
-          slivers: [
+        return NotificationListener<ScrollUpdateNotification>(
+          onNotification: (notification) {
+            if (notification.scrollDelta != null &&
+                notification.scrollDelta!.abs() > 18) {
+              FeedbackService.selection(enabled: appState.hapticsEnabled);
+            }
+            return false;
+          },
+          child: CustomScrollView(
+            slivers: [
             SliverAppBar(
               title: const Text(
                 'MAWO',
@@ -170,7 +181,8 @@ class HomeContent extends StatelessWidget {
                 ),
               ),
             ),
-          ],
+            ],
+          ),
         );
       },
     );

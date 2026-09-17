@@ -95,11 +95,11 @@ class _BootScreenState extends State<BootScreen>
                 child: const Text(
                   'MAWO',
                   style: TextStyle(
-                    fontFamily: AppTheme.spaceMono,
+                    fontFamily: AppTheme.spaceGrotesk,
                     fontSize: 48,
                     fontWeight: FontWeight.w900,
                     color: AppTheme.uiColor,
-                    letterSpacing: 4,
+                    letterSpacing: 2,
                   ),
                 ),
               ),
@@ -159,7 +159,10 @@ class _BootScreenState extends State<BootScreen>
                 CurvedAnimation(parent: _contentController, curve: Curves.easeIn),
               ),
               child: GestureDetector(
-                onTap: widget.onComplete,
+                onTap: () async {
+                  await FeedbackService.selection(enabled: widget.hapticsEnabled);
+                  widget.onComplete();
+                },
                 child: Container(
                   width: 200,
                   padding: const EdgeInsets.symmetric(vertical: 16),

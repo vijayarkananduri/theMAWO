@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:mawo/providers/app_state.dart';
 import 'package:mawo/theme/app_theme.dart';
 import 'package:mawo/services/notification_service.dart';
+import 'package:mawo/services/feedback_service.dart';
 import 'package:mawo/screens/onboarding_tour_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -567,6 +568,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _runNotificationTest() async {
     try {
+      await FeedbackService.selection(
+        enabled: context.read<AppState>().hapticsEnabled,
+      );
       await NotificationService().scheduleTestNotification();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
