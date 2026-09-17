@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest.dart' as tz;
+import 'package:flutter/services.dart';
 
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
@@ -11,13 +12,26 @@ class NotificationService {
   final FlutterLocalNotificationsPlugin _plugin = FlutterLocalNotificationsPlugin();
   bool _initialized = false;
   static const int _endOfDayNotificationId = 900000001;
+  static const MethodChannel _permissions = MethodChannel('mawo/permissions');
+
+  void setTimeZone(String location) {
+    tz.setLocalLocation(tz.getLocation(location));
+  }
+
+  Future<bool> isExactAlarmAllowed() async {
+    return await _permissions.invokeMethod<bool>('isExactAlarmAllowed') ?? false;
+  }
+
+  Future<void> openExactAlarmSettings() async {
+    await _permissions.invokeMethod<bool>('openExactAlarmSettings');
+  }
 
   Future<void> initializeNotifications() async {
     if (_initialized) return;
     tz.initializeTimeZones();
     // Keep scheduled times aligned with the app's India locale instead of
     // relying on the timezone package's default location.
-    tz.setLocalLocation(tz.getLocation('Asia/Kolkata'));
+    setTimeZone('Asia/Kolkata');
 
     const android = AndroidInitializationSettings('@mipmap/ic_launcher');
     const ios = DarwinInitializationSettings(

@@ -17,6 +17,7 @@ class AppState extends ChangeNotifier {
     'eodEnabled': false,
     'eodTime': '21:00',
     'isDark': true,
+    'timezone': 'Asia/Kolkata',
     'hapticsEnabled': true,
     'completionFxEnabled': true,
   };
@@ -67,6 +68,7 @@ class AppState extends ChangeNotifier {
         debugPrint('Error loading data: $e');
       }
     }
+    NotificationService().setTimeZone(settings['timezone'] as String? ?? 'Asia/Kolkata');
     try {
       await rescheduleAllNotifications();
       if (settings['eodEnabled'] == true) {
@@ -164,6 +166,12 @@ class AppState extends ChangeNotifier {
     await saveData();
     notifyListeners();
   }
+  Future<void> setTimeZone(String location) async {
+    settings['timezone'] = location;
+    NotificationService().setTimeZone(location);
+    await saveData();
+    notifyListeners();
+  }
   void toggleTheme() { settings['isDark'] = !(settings['isDark'] ?? true); saveData(); notifyListeners(); }
   void setFeedbackSettings({bool? haptics, bool? completionFx}) { if (haptics != null) settings['hapticsEnabled'] = haptics; if (completionFx != null) settings['completionFxEnabled'] = completionFx; saveData(); notifyListeners(); }
 
@@ -171,7 +179,7 @@ class AppState extends ChangeNotifier {
     habits = [];
     completions = [];
     user = {'name': '', 'createdAt': DateTime.now().millisecondsSinceEpoch};
-    settings = {'eodEnabled': false, 'eodTime': '21:00', 'isDark': true, 'hapticsEnabled': true, 'completionFxEnabled': true};
+    settings = {'eodEnabled': false, 'eodTime': '21:00', 'isDark': true, 'timezone': 'Asia/Kolkata', 'hapticsEnabled': true, 'completionFxEnabled': true};
     totalFragments = 0; totalXP = 0; level = 1; badges = []; totalCompletions = 0; longestStreak = 0; daysActive = 0;
     await _prefs.remove('mawo_data');
     notifyListeners();

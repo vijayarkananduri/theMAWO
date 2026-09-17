@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:mawo/providers/app_state.dart';
 import 'package:mawo/theme/app_theme.dart';
 import 'package:mawo/services/notification_service.dart';
+import 'package:mawo/screens/onboarding_tour_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -354,6 +355,33 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           ),
                         ),
                       ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                GestureDetector(
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => OnboardingTourScreen(
+                        onComplete: () async => Navigator.of(context).pop(),
+                      ),
+                    ),
+                  ),
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: borderColor),
+                      color: surfaceColor,
+                    ),
+                    child: Text(
+                      'OPEN REMINDER SETUP WIZARD',
+                      style: TextStyle(
+                        fontFamily: AppTheme.spaceMono,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                        color: textColor,
+                      ),
                     ),
                   ),
                 ),
