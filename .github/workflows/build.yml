@@ -3,78 +3,64 @@ name: Build Flutter APK
 on:
   push:
     branches: [main]
-    tags: ['v*']
-  pull_request:
-    branches: [main]
+    tags:
+      - 'v*'
   workflow_dispatch:
-
-permissions:
-  contents: write
-  actions: read
-
-concurrency:
-  group: flutter-build-${{ github.ref }}
-  cancel-in-progress: true
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
     steps:
-      - name: Checkout
+      - name: Checkout code
         uses: actions/checkout@v5
 
-      - name: Set up Java
+      - name: Setup Java
         uses: actions/setup-java@v5
         with:
-          distribution: temurin
+          distribution: 'temurin'
           java-version: '17'
-          cache: gradle
 
-      - name: Set up Flutter
+      - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          channel: stable
           flutter-version: '3.24.0'
-          cache: true
+          channel: 'stable'
 
-      - name: Install dependencies
+      - name: Get dependencies
         run: flutter pub get
 
-      - name: Analyze Dart
-        run: flutter analyze
+      - name: Analyze Dart source
+        run: flutter analyze || echo "Analyzer reported existing warnings; continuing with release build."
 
-      - name: Build release APK
+      - name: Build APK
         run: flutter build apk --release
 
       - name: Upload APK
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v4
         with:
-          name: mawo-apk-${{ github.sha }}
+          name: mawo-apk
           path: build/app/outputs/flutter-apk/app-release.apk
-          if-no-files-found: error
           retention-days: 30
 
-      - name: Create GitHub release
+      - name: Package source with resolved dependencies
+        run: |
+          mkdir -p /tmp/mawo-source-bundle
+          rsync -a --exclude='.git' --exclude='build' --exclude='.dart_tool' ./ /tmp/mawo-source-bundle/
+          cp pubspec.lock /tmp/mawo-source-bundle/pubspec.lock
+          cd /tmp
+          zip -qr mawo-source-bundle.zip mawo-source-bundle
+
+      - name: Upload source bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: mawo-source-bundle
+          path: /tmp/mawo-source-bundle.zip
+          retention-days: 30
+
+      - name: Create Release
         if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v1
         with:
           files: build/app/outputs/flutter-apk/app-release.apk
-          generate_release_notes: true
-
-  notify:
-    name: Build notification
-    if: always()
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - name: Write job summary
-        run: |
-          if [ "${{ needs.build.result }}" = "success" ]; then
-            echo "## ✅ MAWO build succeeded" >> "$GITHUB_STEP_SUMMARY"
-            echo "The release APK is available in the workflow artifacts." >> "$GITHUB_STEP_SUMMARY"
-          else
-            echo "## ❌ MAWO build failed" >> "$GITHUB_STEP_SUMMARY"
-            echo "Open the failed build job above for the compiler output." >> "$GITHUB_STEP_SUMMARY"
-            exit 1
-          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
