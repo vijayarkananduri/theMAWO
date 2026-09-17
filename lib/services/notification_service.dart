@@ -8,74 +8,66 @@ class NotificationService {
   factory NotificationService() => _instance;
   NotificationService._internal();
 
-  final FlutterLocalNotificationsPlugin _notificationsPlugin = FlutterLocalNotificationsPlugin();
+  final FlutterLocalNotificationsPlugin _plugin = FlutterLocalNotificationsPlugin();
+  bool _initialized = false;
 
   Future<void> initializeNotifications() async {
+    if (_initialized) return;
     tz.initializeTimeZones();
-    // MAWO currently ships with the creator's deployment timezone. This keeps
-    // scheduled reminders aligned with the device used for the release build.
-    try { tz.setLocalLocation(tz.getLocation('Asia/Kolkata')); } catch (_) {}
-    const initializationSettings = InitializationSettings(
-      android: AndroidInitializationSettings('@mipmap/ic_launcher'),
-      iOS: DarwinInitializationSettings(
-        requestAlertPermission: true,
-        requestBadgePermission: true,
-        requestSoundPermission: true,
-      ),
-    );
-    await _notificationsPlugin.initialize(initializationSettings);
 
-    final androidPlugin = _notificationsPlugin
-        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+    const android = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const ios = DarwinInitializationSettings(
+      requestAlertPermission: true,
+      requestBadgePermission: true,
+      requestSoundPermission: true,
+    );
+
+    await _plugin.initialize(
+      const InitializationSettings(android: android, iOS: ios),
+    );
+
+    final androidPlugin =
+        _plugin.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+
     await androidPlugin?.createNotificationChannel(const AndroidNotificationChannel(
       'mawo_habits',
       'Habit Reminders',
-      description: 'Scheduled reminders for your MAWO habits',
-      importance: Importance.high,
+      description: 'Scheduled reminders for your habits',
+      importance: Importance.max,
     ));
+
     await androidPlugin?.createNotificationChannel(const AndroidNotificationChannel(
       'mawo_general',
       'General Notifications',
       description: 'Standard MAWO notifications',
       importance: Importance.max,
     ));
-    await _requestNotificationPermission();
-    await _requestExactAlarmPermission();
+
+    await androidPlugin?.requestNotificationsPermission();
+    await androidPlugin?.requestExactAlarmsPermission();
+    _initialized = true;
   }
 
-  Future<void> _requestNotificationPermission() async {
-    try {
-      final androidPlugin = _notificationsPlugin
-          .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
-      await androidPlugin?.requestNotificationsPermission();
-    } catch (e) {
-      debugPrint('Notification permission unavailable: $e');
-    }
-  }
-
-  Future<void> _requestExactAlarmPermission() async {
-    try {
-      final androidPlugin = _notificationsPlugin
-          .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
-      final canSchedule = await androidPlugin?.canScheduleExactNotifications();
-      if (canSchedule == false) await androidPlugin?.requestExactAlarmsPermission();
-    } catch (e) {
-      debugPrint('Exact alarm permission unavailable: $e');
-    }
-  }
-
-  Future<void> showNotification({required String title, required String body, required int id}) async {
-    const details = NotificationDetails(
-      android: AndroidNotificationDetails(
-        'mawo_general',
-        'General Notifications',
-        channelDescription: 'Standard MAWO notifications',
-        importance: Importance.max,
-        priority: Priority.high,
+  Future<void> showNotification({
+    required String title,
+    required String body,
+    required int id,
+  }) async {
+    await _plugin.show(
+      id,
+      title,
+      body,
+      const NotificationDetails(
+        android: AndroidNotificationDetails(
+          'mawo_general',
+          'General Notifications',
+          channelDescription: 'Standard MAWO notifications',
+          importance: Importance.max,
+          priority: Priority.high,
+        ),
+        iOS: DarwinNotificationDetails(),
       ),
-      iOS: DarwinNotificationDetails(),
     );
-    await _notificationsPlugin.show(id, title, body, details);
   }
 
   Future<void> scheduleNotification({
@@ -85,94 +77,78 @@ class NotificationService {
     required List<int> days,
     required bool followup,
     required int goalMinutes,
-    required bool isOneTime,
   }) async {
-    final parsed = _parseTime(time);
-    if (parsed == null || (!isOneTime && days.isEmpty)) return;
-    final hour = parsed.$1;
-    final minute = parsed.$2;
-    final now = tz.TZDateTime.now(tz.local);
-    final baseId = habitId.hashCode.abs();
-    final scheduleDays = isOneTime ? [0] : days;
+    if (!_initialized) await initializeNotifications();
 
-    for (final day in scheduleDays) {
-      final flutterDay = day == 0 ? 7 : day;
-      var scheduledDate = tz.TZDateTime(tz.local, now.year, now.month, now.day, hour, minute);
-      if (!isOneTime) {
-        while (scheduledDate.weekday != flutterDay) {
-          scheduledDate = scheduledDate.add(const Duration(days: 1));
-        }
-      }
-      if (scheduledDate.isBefore(now)) {
-        scheduledDate = scheduledDate.add(Duration(days: isOneTime ? 1 : 7));
+    final parts = time.split(':');
+    if (parts.length != 2) throw FormatException('Notification time must be HH:mm');
+
+    final hour = int.tryParse(parts[0]);
+    final minute = int.tryParse(parts[1]);
+
+    if (hour == null || minute == null || hour > 23 || minute > 59) {
+      throw FormatException('Notification time must be HH:mm');
+    }
+
+    final now = DateTime.now();
+    final baseId = habitId.hashCode.abs() % 100000000;
+
+    for (final day in days.toSet()) {
+      final flutterDay = day == 0 ? DateTime.sunday : day;
+      var localDate = DateTime(now.year, now.month, now.day, hour, minute);
+
+      while (localDate.weekday != flutterDay) {
+        localDate = localDate.add(const Duration(days: 1));
       }
 
-      try {
-        await _notificationsPlugin.zonedSchedule(
-          baseId + day,
-          'MAWO // Habit Alert',
-          'Time for $habitName${goalMinutes > 0 ? ' ($goalMinutes min goal)' : ''}',
-          scheduledDate,
-          const NotificationDetails(
-            android: AndroidNotificationDetails(
-              'mawo_habits',
-              'Habit Reminders',
-              channelDescription: 'Scheduled reminders for your habits',
-              importance: Importance.high,
-              priority: Priority.high,
-            ),
-            iOS: DarwinNotificationDetails(),
+      if (!localDate.isAfter(now)) {
+        localDate = localDate.add(const Duration(days: 7));
+      }
+
+      await _plugin.zonedSchedule(
+        baseId + day,
+        'MAWO // Habit Alert',
+        'Time for $habitName ($goalMinutes min goal)',
+        tz.TZDateTime.from(localDate, tz.local),
+        const NotificationDetails(
+          android: AndroidNotificationDetails(
+            'mawo_habits',
+            'Habit Reminders',
+            channelDescription: 'Scheduled reminders for your habits',
+            importance: Importance.max,
+            priority: Priority.high,
           ),
-          androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
-          uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
-          matchDateTimeComponents: isOneTime ? null : DateTimeComponents.dayOfWeekAndTime,
-        );
-        debugPrint('MAWO reminder scheduled: $habitName at $scheduledDate; one-time=$isOneTime');
-      } catch (e) {
-        debugPrint('MAWO reminder scheduling failed for $habitName: $e');
-      }
+          iOS: DarwinNotificationDetails(),
+        ),
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+        matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
+      );
     }
   }
 
-  (int, int)? _parseTime(String value) {
-    final match = RegExp(r'^(\d{1,2}):(\d{2})$').firstMatch(value.trim());
-    if (match == null) return null;
-    final hour = int.tryParse(match.group(1)!);
-    final minute = int.tryParse(match.group(2)!);
-    if (hour == null || minute == null || hour > 23 || minute > 59) return null;
-    return (hour, minute);
-  }
-
-  Future<void> scheduleEndOfDayReminder({required String time}) async {
-    await _notificationsPlugin.cancel(9001);
-    final parsed = _parseTime(time);
-    if (parsed == null) return;
-    final now = tz.TZDateTime.now(tz.local);
-    var scheduled = tz.TZDateTime(tz.local, now.year, now.month, now.day, parsed.$1, parsed.$2);
-    if (scheduled.isBefore(now)) scheduled = scheduled.add(const Duration(days: 1));
-    await _notificationsPlugin.zonedSchedule(
-      9001,
-      'MAWO // Daily Check-in',
-      'Your habits are still waiting for you. Close the loop before the day ends.',
-      scheduled,
-      const NotificationDetails(
-        android: AndroidNotificationDetails('mawo_general', 'General Notifications', channelDescription: 'Standard MAWO notifications', importance: Importance.max, priority: Priority.high),
-        iOS: DarwinNotificationDetails(),
-      ),
-      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
-      uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
-      matchDateTimeComponents: DateTimeComponents.time,
-    );
-  }
-
-  Future<void> cancelEndOfDayReminder() async {
-    await _notificationsPlugin.cancel(9001);
-  }
-
   Future<void> cancelHabitNotifications(String habitId) async {
-    final baseId = habitId.hashCode.abs();
+    final baseId = habitId.hashCode.abs() % 100000000;
     for (var i = 0; i < 7; i++) {
-      await _notificationsPlugin.cancel(baseId + i);
+      await _plugin.cancel(baseId + i);
+    }
+  }
+
+  Future<void> rescheduleHabits(Iterable<dynamic> habits) async {
+    for (final habit in habits) {
+      await cancelHabitNotifications(habit.id as String);
+      final notification = habit.notif;
+      if (notification != null && notification.enabled == true && notification.days.isNotEmpty) {
+        await scheduleNotification(
+          habitId: habit.id as String,
+          habitName: habit.name as String,
+          time: notification.time as String,
+          days: List<int>.from(notification.days as List),
+          followup: notification.followup == true,
+          goalMinutes: habit.goalMinutes as int,
+        );
+      }
     }
   }
 }
