@@ -10,6 +10,7 @@ class NotificationService {
 
   final FlutterLocalNotificationsPlugin _plugin = FlutterLocalNotificationsPlugin();
   bool _initialized = false;
+  static const int _endOfDayNotificationId = 900000001;
 
   Future<void> initializeNotifications() async {
     if (_initialized) return;
@@ -77,6 +78,7 @@ class NotificationService {
     required List<int> days,
     required bool followup,
     required int goalMinutes,
+    bool isOneTime = false,
   }) async {
     if (!_initialized) await initializeNotifications();
 
@@ -93,7 +95,11 @@ class NotificationService {
     final now = DateTime.now();
     final baseId = habitId.hashCode.abs() % 100000000;
 
-    for (final day in days.toSet()) {
+    final scheduleDays = isOneTime
+        ? <int>[days.isNotEmpty ? days.first : DateTime.now().weekday]
+        : days.toSet().toList();
+
+    for (final day in scheduleDays) {
       final flutterDay = day == 0 ? DateTime.sunday : day;
       var localDate = DateTime(now.year, now.month, now.day, hour, minute);
 
@@ -123,9 +129,51 @@ class NotificationService {
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
         uiLocalNotificationDateInterpretation:
             UILocalNotificationDateInterpretation.absoluteTime,
-        matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
+        matchDateTimeComponents:
+            isOneTime ? null : DateTimeComponents.dayOfWeekAndTime,
       );
     }
+  }
+
+  Future<void> scheduleEndOfDayReminder({required String time}) async {
+    if (!_initialized) await initializeNotifications();
+
+    final parts = time.split(':');
+    if (parts.length != 2) throw FormatException('Notification time must be HH:mm');
+    final hour = int.tryParse(parts[0]);
+    final minute = int.tryParse(parts[1]);
+    if (hour == null || minute == null || hour > 23 || minute > 59) {
+      throw FormatException('Notification time must be HH:mm');
+    }
+
+    final now = DateTime.now();
+    var scheduled = DateTime(now.year, now.month, now.day, hour, minute);
+    if (!scheduled.isAfter(now)) scheduled = scheduled.add(const Duration(days: 1));
+
+    await _plugin.zonedSchedule(
+      _endOfDayNotificationId,
+      'MAWO // Daily reflection',
+      'Take a moment to check in with your habits.',
+      tz.TZDateTime.from(scheduled, tz.local),
+      const NotificationDetails(
+        android: AndroidNotificationDetails(
+          'mawo_general',
+          'General Notifications',
+          channelDescription: 'Standard MAWO notifications',
+          importance: Importance.max,
+          priority: Priority.high,
+        ),
+        iOS: DarwinNotificationDetails(),
+      ),
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      uiLocalNotificationDateInterpretation:
+          UILocalNotificationDateInterpretation.absoluteTime,
+      matchDateTimeComponents: DateTimeComponents.time,
+    );
+  }
+
+  Future<void> cancelEndOfDayReminder() async {
+    await _plugin.cancel(_endOfDayNotificationId);
   }
 
   Future<void> cancelHabitNotifications(String habitId) async {
@@ -147,6 +195,7 @@ class NotificationService {
           days: List<int>.from(notification.days as List),
           followup: notification.followup == true,
           goalMinutes: habit.goalMinutes as int,
+          isOneTime: habit.type == 'onetime',
         );
       }
     }
