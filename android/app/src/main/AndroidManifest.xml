@@ -1,16 +1,4 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <queries>
-        <intent>
-            <action android:name="android.intent.action.VIEW" />
-            <category android:name="android.intent.category.BROWSABLE" />
-            <data android:scheme="https" />
-        </intent>
-        <intent>
-            <action android:name="android.intent.action.VIEW" />
-            <category android:name="android.intent.category.BROWSABLE" />
-            <data android:scheme="http" />
-        </intent>
-    </queries>
     <application
         android:label="mawo"
         android:name="${applicationName}"
@@ -26,8 +14,7 @@
             android:windowSoftInputMode="adjustResize">
             <meta-data
               android:name="io.flutter.embedding.android.NormalTheme"
-              android:resource="@style/NormalTheme"
-              />
+              android:resource="@style/NormalTheme" />
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
@@ -37,13 +24,9 @@
             android:name="flutterEmbedding"
             android:value="2" />
     </application>
-    <!-- Required Permissions -->
+
     <uses-permission android:name="android.permission.INTERNET"/>
-    
-    <!-- Notification Permissions (Android 13+) -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
-    
-    <!-- Alarm Permissions for Exact Scheduling -->
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>
     <uses-permission android:name="android.permission.USE_EXACT_ALARM"/>
 </manifest>
