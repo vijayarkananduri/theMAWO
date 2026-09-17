@@ -5,6 +5,7 @@ import 'package:mawo/screens/home_screen.dart';
 import 'package:mawo/providers/app_state.dart';
 import 'package:mawo/theme/app_theme.dart';
 import 'package:mawo/services/notification_service.dart';
+import 'package:mawo/screens/onboarding_tour_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -55,9 +56,37 @@ class _MAWOAppState extends State<MAWOApp> {
           themeMode: isDark ? ThemeMode.dark : ThemeMode.light,
           theme: AppTheme.light,
           darkTheme: AppTheme.dark,
-          home: BootScreen(
-            onComplete: () => _navigatorKey.currentState?.pushReplacementNamed('/home'),
-          ),
+          home: !appState.hasSeenIntro
+              ? BootScreen(
+                  hapticsEnabled: appState.hapticsEnabled,
+                  onComplete: () async {
+                    await appState.completeOnboarding();
+                    if (mounted) {
+                      _navigatorKey.currentState?.pushReplacement(
+                        MaterialPageRoute(
+                          builder: (_) => OnboardingTourScreen(
+                            onComplete: () async {
+                              await appState.completeTour();
+                              if (mounted) {
+                                _navigatorKey.currentState?.pushReplacementNamed('/home');
+                              }
+                            },
+                          ),
+                        ),
+                      );
+                    }
+                  },
+                )
+              : !appState.hasSeenTour
+                  ? OnboardingTourScreen(
+                      onComplete: () async {
+                        await appState.completeTour();
+                        if (mounted) {
+                          _navigatorKey.currentState?.pushReplacementNamed('/home');
+                        }
+                      },
+                    )
+                  : const HomeScreen(),
           routes: {
             '/home': (context) => const HomeScreen(),
           },

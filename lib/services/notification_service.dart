@@ -15,6 +15,9 @@ class NotificationService {
   Future<void> initializeNotifications() async {
     if (_initialized) return;
     tz.initializeTimeZones();
+    // Keep scheduled times aligned with the app's India locale instead of
+    // relying on the timezone package's default location.
+    tz.setLocalLocation(tz.getLocation('Asia/Kolkata'));
 
     const android = AndroidInitializationSettings('@mipmap/ic_launcher');
     const ios = DarwinInitializationSettings(
@@ -133,6 +136,30 @@ class NotificationService {
             isOneTime ? null : DateTimeComponents.dayOfWeekAndTime,
       );
     }
+  }
+
+  Future<void> scheduleTestNotification() async {
+    if (!_initialized) await initializeNotifications();
+    final scheduled = DateTime.now().add(const Duration(minutes: 2));
+    await _plugin.zonedSchedule(
+      900000002,
+      'MAWO // Notification test',
+      'If you can see this, MAWO reminders are working.',
+      tz.TZDateTime.from(scheduled, tz.local),
+      const NotificationDetails(
+        android: AndroidNotificationDetails(
+          'mawo_general',
+          'General Notifications',
+          channelDescription: 'Standard MAWO notifications',
+          importance: Importance.max,
+          priority: Priority.high,
+        ),
+        iOS: DarwinNotificationDetails(),
+      ),
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      uiLocalNotificationDateInterpretation:
+          UILocalNotificationDateInterpretation.absoluteTime,
+    );
   }
 
   Future<void> scheduleEndOfDayReminder({required String time}) async {

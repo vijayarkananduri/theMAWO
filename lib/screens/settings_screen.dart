@@ -5,6 +5,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:mawo/providers/app_state.dart';
 import 'package:mawo/theme/app_theme.dart';
+import 'package:mawo/services/notification_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -321,6 +322,42 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                 ),
 
+                const SizedBox(height: 8),
+                GestureDetector(
+                  onTap: _runNotificationTest,
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: AppTheme.uiColor),
+                      color: AppTheme.uiColor.withOpacity(0.08),
+                    ),
+                    child: const Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'TEST NOTIFICATION // 2 MINUTES',
+                          style: TextStyle(
+                            fontFamily: AppTheme.spaceMono,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            color: AppTheme.uiColor,
+                          ),
+                        ),
+                        SizedBox(height: 5),
+                        Text(
+                          'If nothing appears, check MAWO notification, alarm, battery, and Do Not Disturb settings.',
+                          style: TextStyle(
+                            fontFamily: AppTheme.spaceMono,
+                            fontSize: 8,
+                            height: 1.5,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
                 const SizedBox(height: 12),
 
                 _SettingsSection(
@@ -497,6 +534,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (mounted) {
         context.read<AppState>().setEODSettings(true, _toStoredTime(_eodTimeController.text));
       }
+    }
+  }
+
+  Future<void> _runNotificationTest() async {
+    try {
+      await NotificationService().scheduleTestNotification();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('// Test scheduled. Check for a notification in 2 minutes.'),
+          backgroundColor: AppTheme.uiColor,
+          duration: Duration(seconds: 4),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('// Test failed. Check notification and Alarms & reminders access.'),
+          backgroundColor: Colors.red,
+          duration: Duration(seconds: 5),
+        ),
+      );
     }
   }
 
