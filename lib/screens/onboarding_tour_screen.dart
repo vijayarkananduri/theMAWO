@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:mawo/theme/app_theme.dart';
 import 'package:mawo/services/feedback_service.dart';
+import 'package:mawo/providers/app_state.dart';
+import 'package:provider/provider.dart';
 
 class OnboardingTourScreen extends StatefulWidget {
   final Future<void> Function()? onComplete;
@@ -18,6 +20,7 @@ class _OnboardingTourScreenState extends State<OnboardingTourScreen> {
     ('01', 'FRAGMENTS // DAILY SIGNAL', 'Complete a habit and earn +1 Fragment. Fragments measure consistency and warm the interface with a small directional glow.'),
     ('02', 'XP // YOUR EFFORT', 'XP measures the value of what you do. Every 100 XP sends a ripple through MAWO, then softens its corners and deepens its shape.'),
     ('03', 'TWO CURRENCIES. ONE SIGNAL.', 'Fragments warm the app. XP shapes it. Optional reminders help you check in without spam. Creating a habit sends a test notification so you can verify them.'),
+    ('04', 'CALIBRATE YOUR CLOCK', 'Tell MAWO the date and time shown by your real-world clock. This keeps future reminders and one-time dates aligned without relying on a hardcoded timezone.'),
   ];
 
   Future<void> _next() async {
@@ -25,8 +28,25 @@ class _OnboardingTourScreenState extends State<OnboardingTourScreen> {
     if (_page < _steps.length - 1) {
       await _controller.nextPage(duration: const Duration(milliseconds: 220), curve: Curves.easeOutCubic);
     } else {
-      await widget.onComplete?.call();
+      await _calibrateClock();
     }
+  }
+
+  Future<void> _calibrateClock() async {
+      final now = DateTime.now();
+      final date = await showDatePicker(
+        context: context,
+        initialDate: now,
+        firstDate: now.subtract(const Duration(days: 365)),
+        lastDate: now.add(const Duration(days: 365)),
+      );
+      if (date == null || !mounted) return;
+      final time = await showTimePicker(context: context, initialTime: TimeOfDay.fromDateTime(now));
+      if (time == null || !mounted) return;
+      await context.read<AppState>().calibrateClock(
+        DateTime(date.year, date.month, date.day, time.hour, time.minute),
+      );
+      await widget.onComplete?.call();
   }
 
   @override
@@ -52,7 +72,7 @@ class _OnboardingTourScreenState extends State<OnboardingTourScreen> {
             Row(children: List.generate(_steps.length, (index) => AnimatedContainer(duration: const Duration(milliseconds: 180), margin: const EdgeInsets.only(right: 8), width: index == _page ? 34 : 10, height: 4, color: index == _page ? AppTheme.uiColor : muted))),
             const SizedBox(height: 24),
             SizedBox(width: double.infinity, child: ElevatedButton(onPressed: _next, style: ElevatedButton.styleFrom(backgroundColor: AppTheme.uiColor, foregroundColor: Colors.black, padding: const EdgeInsets.symmetric(vertical: 17), shape: const RoundedRectangleBorder()), child: Text(_page == _steps.length - 1 ? 'START CHECKING IN' : 'NEXT', style: const TextStyle(fontFamily: AppTheme.spaceMono, fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1.5)))),
-            if (_page < _steps.length - 1) ...[const SizedBox(height: 10), Center(child: TextButton(onPressed: () async => widget.onComplete?.call(), child: Text('SKIP TOUR', style: TextStyle(fontFamily: AppTheme.spaceMono, fontSize: 9, color: muted, letterSpacing: 1))))],
+            if (_page < _steps.length - 1) ...[const SizedBox(height: 10), Center(child: TextButton(onPressed: _calibrateClock, child: Text('SKIP TOUR', style: TextStyle(fontFamily: AppTheme.spaceMono, fontSize: 9, color: muted, letterSpacing: 1))))],
           ]),
         ),
       ),

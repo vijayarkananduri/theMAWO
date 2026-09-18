@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:mawo/providers/app_state.dart';
 import 'package:mawo/theme/app_theme.dart';
 import 'package:mawo/services/feedback_service.dart';
+import 'package:mawo/services/notification_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -132,6 +133,49 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         onChanged: (value) => appState.setFeedbackSettings(completionFx: value),
                         borderColor: borderColor,
                         muteColor: muteColor,
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 12),
+
+                _SettingsSection(
+                  label: 'REMINDERS //',
+                  child: Column(
+                    children: [
+                      SwitchListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: const Text('END-OF-DAY CHECK-IN', style: TextStyle(fontFamily: AppTheme.spaceMono, fontSize: 11)),
+                        subtitle: Text('Daily reflection reminder', style: TextStyle(fontFamily: AppTheme.spaceGrotesk, fontSize: 12, color: muteColor)),
+                        value: appState.settings['eodEnabled'] == true,
+                        activeColor: AppTheme.uiColor,
+                        onChanged: (value) async {
+                          try {
+                            await appState.setEODSettings(value);
+                          } catch (e) {
+                            if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('// Reminder not scheduled: $e')));
+                          }
+                        },
+                      ),
+                      if (appState.settings['eodEnabled'] == true)
+                        Row(
+                          children: [
+                            Expanded(child: Text(appState.settings['eodTime'] ?? '21:00', style: const TextStyle(fontFamily: AppTheme.spaceMono, fontSize: 13))),
+                            TextButton(onPressed: () => _pickEodTime(context, appState), child: const Text('SET TIME', style: TextStyle(fontFamily: AppTheme.spaceMono, fontSize: 10, color: AppTheme.uiColor))),
+                          ],
+                        ),
+                      const Divider(),
+                      Align(alignment: Alignment.centerLeft, child: Text('DIAGNOSTICS', style: TextStyle(fontFamily: AppTheme.spaceMono, fontSize: 9, color: muteColor))),
+                      Wrap(
+                        spacing: 8,
+                        children: [
+                          TextButton(onPressed: () async { await NotificationService().showTestNotification(); }, child: const Text('TEST NOW')),
+                          TextButton(onPressed: () async { await NotificationService().openExactAlarmSettings(); }, child: const Text('ALARM SETTINGS')),
+                          TextButton(onPressed: () => _recalibrateClock(context, appState), child: const Text('CALIBRATE CLOCK')),
+                          TextButton(onPressed: () async { try { await NotificationService().scheduleTestNotification(); if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('// Scheduled test set for 2 minutes.'))); } catch (e) { if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('// Scheduled test failed: $e'))); } }, child: const Text('TEST IN 2 MIN')),
+                          TextButton(onPressed: () async { try { await appState.rescheduleAllNotifications(); if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('// Reminders rescheduled.'))); } catch (e) { if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('// Reschedule failed: $e'))); } }, child: const Text('RESCHEDULE')),
+                        ],
                       ),
                     ],
                   ),
@@ -319,6 +363,30 @@ class _SettingsScreenState extends State<SettingsScreen> {
         );
       },
     );
+  }
+
+  Future<void> _recalibrateClock(BuildContext context, AppState appState) async {
+    final now = DateTime.now();
+    final date = await showDatePicker(context: context, initialDate: now, firstDate: now.subtract(const Duration(days: 365)), lastDate: now.add(const Duration(days: 365)));
+    if (date == null || !context.mounted) return;
+    final time = await showTimePicker(context: context, initialTime: TimeOfDay.fromDateTime(now));
+    if (time == null || !context.mounted) return;
+    await appState.calibrateClock(DateTime(date.year, date.month, date.day, time.hour, time.minute));
+    await appState.rescheduleAllNotifications();
+    if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('// Clock calibrated and reminders rescheduled.')));
+  }
+
+  Future<void> _pickEodTime(BuildContext context, AppState appState) async {
+    final current = (appState.settings['eodTime'] ?? '21:00').toString().split(':');
+    final initial = TimeOfDay(hour: int.tryParse(current.first) ?? 21, minute: int.tryParse(current.last) ?? 0);
+    final picked = await showTimePicker(context: context, initialTime: initial);
+    if (picked == null) return;
+    final value = '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}';
+    try {
+      await appState.setEODSettings(true, value);
+    } catch (e) {
+      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('// Reminder not scheduled: $e')));
+    }
   }
 
   Future<void> _exportData(BuildContext context, AppState appState) async {

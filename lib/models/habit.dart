@@ -52,12 +52,14 @@ class NotificationSettings {
   final String time; // HH:mm format
   final List<int> days; // 0-6 (Sunday to Saturday)
   final bool followup;
+  final String? date; // YYYY-MM-DD for one-time reminders
 
   NotificationSettings({
     required this.enabled,
     required this.time,
     required this.days,
     required this.followup,
+    this.date,
   });
 
   factory NotificationSettings.fromJson(Map<String, dynamic> json) {
@@ -66,6 +68,7 @@ class NotificationSettings {
       time: json['time'] ?? '09:00',
       days: List<int>.from(json['days'] ?? [0, 1, 2, 3, 4, 5, 6]),
       followup: json['followup'] ?? false,
+      date: json['date'],
     );
   }
 
@@ -75,6 +78,7 @@ class NotificationSettings {
       'time': time,
       'days': days,
       'followup': followup,
+      'date': date,
     };
   }
 }

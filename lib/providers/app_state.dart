@@ -17,7 +17,9 @@ class AppState extends ChangeNotifier {
     'eodEnabled': false,
     'eodTime': '21:00',
     'isDark': true,
-    'timezone': 'Asia/Kolkata',
+    'timezone': 'UTC',
+    'clockReference': null,
+    'clockDeviceMillis': null,
     'hapticsEnabled': true,
     'completionFxEnabled': true,
   };
@@ -73,9 +75,15 @@ class AppState extends ChangeNotifier {
       }
     }
     final notificationService = NotificationService();
-    notificationService.setTimeZone(settings['timezone'] ?? 'Asia/Kolkata');
-    await notificationService.initializeNotifications();
-    await rescheduleAllNotifications();
+    await notificationService.initializeNotifications(location: settings['timezone'] ?? 'UTC');
+    try {
+      await rescheduleAllNotifications();
+      if (settings['eodEnabled'] == true) {
+        await notificationService.scheduleEndOfDayReminder(time: settings['eodTime'] ?? '21:00');
+      }
+    } catch (e) {
+      debugPrint('Notification restore skipped: $e');
+    }
     notifyListeners();
   }
 
@@ -95,8 +103,13 @@ class AppState extends ChangeNotifier {
     if (!NotificationService.enabled) return;
     final service = NotificationService();
     for (final habit in habits) {
-      await service.cancelHabitNotifications(habit.id);
-      if (habit.notif?.enabled == true) {
+      try {
+        await service.cancelHabitNotifications(habit.id);
+        if (habit.notif?.enabled == true) {
+        final oneTimeDate = habit.type == 'onetime' && habit.notif!.date != null
+            ? DateTime.tryParse(habit.notif!.date!)
+            : null;
+        final scheduledDelay = _delayUntilReminder(habit);
         await service.scheduleNotification(
           habitId: habit.id,
           habitName: habit.name,
@@ -104,8 +117,14 @@ class AppState extends ChangeNotifier {
           days: habit.notif!.days,
           followup: habit.notif!.followup,
           goalMinutes: habit.goalMinutes,
+          category: habit.category,
+          oneTimeDate: oneTimeDate,
+          delay: scheduledDelay,
           isOneTime: habit.type == 'onetime',
         );
+        }
+      } catch (e) {
+        debugPrint('Reminder restore failed for ${habit.name}: $e');
       }
     }
   }
@@ -159,16 +178,23 @@ class AppState extends ChangeNotifier {
     settings['eodEnabled'] = enabled;
     if (time != null) settings['eodTime'] = time;
     final service = NotificationService();
-    if (enabled) {
-      await service.scheduleEndOfDayReminder(time: settings['eodTime']);
-    } else {
-      await service.cancelEndOfDayReminder();
+    try {
+      if (enabled) {
+        await service.scheduleEndOfDayReminder(time: settings['eodTime']);
+      } else {
+        await service.cancelEndOfDayReminder();
+      }
+    } catch (e) {
+      debugPrint('End-of-day reminder update failed: $e');
+      rethrow;
     }
     await saveData();
     notifyListeners();
   }
   Future<void> setTimeZone(String location) async {
     settings['timezone'] = location;
+    NotificationService().setTimeZone(location);
+    await rescheduleAllNotifications();
     await saveData();
     notifyListeners();
   }
@@ -183,7 +209,7 @@ class AppState extends ChangeNotifier {
     habits = [];
     completions = [];
     user = {'name': '', 'createdAt': DateTime.now().millisecondsSinceEpoch};
-    settings = {'eodEnabled': false, 'eodTime': '21:00', 'isDark': true, 'timezone': 'Asia/Kolkata', 'hapticsEnabled': true, 'completionFxEnabled': true};
+    settings = {'eodEnabled': false, 'eodTime': '21:00', 'isDark': true, 'timezone': 'UTC', 'clockReference': null, 'clockDeviceMillis': null, 'hapticsEnabled': true, 'completionFxEnabled': true};
     totalFragments = 0; totalXP = 0; level = 1; badges = []; totalCompletions = 0; longestStreak = 0; daysActive = 0;
     await _prefs.remove('mawo_data');
     notifyListeners();
@@ -272,10 +298,74 @@ class AppState extends ChangeNotifier {
   Future<void> _updateHabitNotifications(Habit habit) async {
     if (!NotificationService.enabled) return;
     final ns = NotificationService();
-    await ns.cancelHabitNotifications(habit.id);
-    if (habit.notif?.enabled == true) {
-      await ns.scheduleNotification(habitId: habit.id, habitName: habit.name, time: habit.notif!.time, days: habit.notif!.days, followup: habit.notif!.followup, goalMinutes: habit.goalMinutes, isOneTime: habit.type == 'onetime');
+    try {
+      await ns.cancelHabitNotifications(habit.id);
+      if (habit.notif?.enabled == true) {
+      DateTime? oneTimeDate;
+      if (habit.type == 'onetime' && habit.notif!.date != null) {
+        oneTimeDate = DateTime.tryParse(habit.notif!.date!);
+      }
+      await ns.scheduleNotification(
+        habitId: habit.id,
+        habitName: habit.name,
+        time: habit.notif!.time,
+        days: habit.notif!.days,
+        followup: habit.notif!.followup,
+        goalMinutes: habit.goalMinutes,
+        category: habit.category,
+        oneTimeDate: oneTimeDate,
+        delay: _delayUntilReminder(habit),
+        isOneTime: habit.type == 'onetime',
+      );
+      }
+    } catch (e) {
+      debugPrint('Reminder scheduling failed for ${habit.name}: $e');
     }
+  }
+
+  Duration? _delayUntilReminder(Habit habit) {
+    final calibrated = calibratedClock;
+    if (calibrated == null || habit.notif == null) return null;
+    final parts = habit.notif!.time.split(':');
+    if (parts.length != 2) return null;
+    final hour = int.tryParse(parts[0]);
+    final minute = int.tryParse(parts[1]);
+    if (hour == null || minute == null) return null;
+    DateTime target;
+    if (habit.type == 'onetime' && habit.notif!.date != null) {
+      final date = DateTime.tryParse(habit.notif!.date!);
+      if (date == null) return null;
+      target = DateTime(date.year, date.month, date.day, hour, minute);
+    } else {
+      target = calibrated;
+      for (var offset = 0; offset <= 7; offset++) {
+        final candidate = calibrated.add(Duration(days: offset));
+        final sundayBased = candidate.weekday == DateTime.sunday ? 0 : candidate.weekday;
+        if (habit.notif!.days.contains(sundayBased)) {
+          final possible = DateTime(candidate.year, candidate.month, candidate.day, hour, minute);
+          if (possible.isAfter(calibrated)) { target = possible; break; }
+        }
+      }
+    }
+    final delay = target.difference(calibrated);
+    return delay.isNegative ? null : delay;
+  }
+
+  Future<void> calibrateClock(DateTime userNow) async {
+    settings['clockReference'] = userNow.toIso8601String();
+    settings['clockDeviceMillis'] = DateTime.now().millisecondsSinceEpoch;
+    await saveData();
+    notifyListeners();
+  }
+
+  DateTime? get calibratedClock {
+    final reference = settings['clockReference'];
+    final deviceMillis = settings['clockDeviceMillis'];
+    if (reference is! String || deviceMillis is! int) return null;
+    final base = DateTime.tryParse(reference);
+    if (base == null) return null;
+    final elapsed = DateTime.now().millisecondsSinceEpoch - deviceMillis;
+    return base.add(Duration(milliseconds: elapsed));
   }
 
   Future<void> notifyHabitCreated(Habit habit) async {

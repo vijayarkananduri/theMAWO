@@ -9,7 +9,9 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    # Pin the runner during the Ubuntu 26 migration window so Android/Flutter
+    # builds remain reproducible instead of changing under this workflow.
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
@@ -36,7 +38,7 @@ jobs:
         run: flutter build apk --release
 
       - name: Upload APK
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4.6.2
         with:
           name: mawo-apk
           path: build/app/outputs/flutter-apk/app-release.apk
@@ -46,7 +48,7 @@ jobs:
         run: zip -j mawo-apk.zip build/app/outputs/flutter-apk/app-release.apk
 
       - name: Upload APK ZIP
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4.6.2
         with:
           name: mawo-apk-zip
           path: mawo-apk.zip
@@ -61,7 +63,7 @@ jobs:
           zip -qr mawo-source-bundle.zip mawo-source-bundle
 
       - name: Upload source bundle
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4.6.2
         with:
           name: mawo-source-bundle
           path: /tmp/mawo-source-bundle.zip
@@ -69,7 +71,7 @@ jobs:
 
       - name: Create Release
         if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           files: build/app/outputs/flutter-apk/app-release.apk
         env:

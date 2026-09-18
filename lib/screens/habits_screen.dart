@@ -339,6 +339,7 @@ class _AddHabitModalState extends State<AddHabitModal> {
   late bool _notifEnabled;
   late List<int> _selectedDays;
   late bool _followupEnabled;
+  late DateTime _selectedDate;
 
   @override
   void initState() {
@@ -355,6 +356,7 @@ class _AddHabitModalState extends State<AddHabitModal> {
           text: _displayTime(widget.habit!.notif?.time ?? '09:00'));
       _selectedDays = widget.habit!.notif?.days ?? [0, 1, 2, 3, 4, 5, 6];
       _followupEnabled = widget.habit!.notif?.followup ?? false;
+      _selectedDate = DateTime.tryParse(widget.habit!.notif?.date ?? '') ?? DateTime.now();
     } else {
       _nameController = TextEditingController();
       _goalController = TextEditingController(text: '30');
@@ -364,6 +366,7 @@ class _AddHabitModalState extends State<AddHabitModal> {
       _notifEnabled = false;
       _selectedDays = [0, 1, 2, 3, 4, 5, 6];
       _followupEnabled = false;
+      _selectedDate = DateTime.now();
     }
   }
 
@@ -554,15 +557,56 @@ class _AddHabitModalState extends State<AddHabitModal> {
                     onChanged: (value) => setState(() => _notifEnabled = value),
                   ),
                   if (_notifEnabled)
-                    Row(
+                    Column(
                       children: [
-                        Expanded(child: Text(_timeController.text, style: const TextStyle(fontFamily: AppTheme.spaceMono, fontSize: 13))),
-                        TextButton(onPressed: _pickReminderTime, child: const Text('SET TIME', style: TextStyle(fontFamily: AppTheme.spaceMono, fontSize: 10, color: AppTheme.uiColor))),
+                        Row(
+                          children: [
+                            Expanded(child: Text(_timeController.text, style: const TextStyle(fontFamily: AppTheme.spaceMono, fontSize: 13))),
+                            TextButton(onPressed: _pickReminderTime, child: const Text('SET TIME', style: TextStyle(fontFamily: AppTheme.spaceMono, fontSize: 10, color: AppTheme.uiColor))),
+                          ],
+                        ),
+                        if (_selectedType == 'daily')
+                          Wrap(
+                            spacing: 4,
+                            children: List.generate(7, (index) {
+                              final selected = _selectedDays.contains(index);
+                              const labels = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+                              return FilterChip(
+                                label: Text(labels[index]),
+                                selected: selected,
+                                onSelected: (value) => setState(() {
+                                  if (value) { _selectedDays = {..._selectedDays, index}.toList(); }
+                                  else { _selectedDays = _selectedDays.where((day) => day != index).toList(); }
+                                }),
+                              );
+                            }),
+                          ),
+                        SwitchListTile(
+                          contentPadding: EdgeInsets.zero,
+                          title: const Text('FOLLOW-UP AFTER 30 MIN', style: TextStyle(fontFamily: AppTheme.spaceMono, fontSize: 10)),
+                          value: _followupEnabled,
+                          activeColor: AppTheme.uiColor,
+                          onChanged: (value) => setState(() => _followupEnabled = value),
+                        ),
                       ],
                     ),
                 ],
               ),
             ),
+            if (_selectedType == 'onetime')
+              _FormField(
+                label: 'DATE //',
+                child: TextButton(
+                  onPressed: _pickReminderDate,
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      '${_selectedDate.year}-${_selectedDate.month.toString().padLeft(2, '0')}-${_selectedDate.day.toString().padLeft(2, '0')}',
+                      style: const TextStyle(fontFamily: AppTheme.spaceMono, fontSize: 13, color: AppTheme.uiColor),
+                    ),
+                  ),
+                ),
+              ),
             const SizedBox(height: 32),
 
             // Submit Button
@@ -623,6 +667,16 @@ class _AddHabitModalState extends State<AddHabitModal> {
     if (picked != null) {
       setState(() => _timeController.text = _formatStoredTime(picked));
     }
+  }
+
+  Future<void> _pickReminderDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate.isBefore(DateTime.now()) ? DateTime.now() : _selectedDate,
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 3650)),
+    );
+    if (picked != null) setState(() => _selectedDate = picked);
   }
 
   TimeOfDay? _parseDisplayedTime(String value) {
