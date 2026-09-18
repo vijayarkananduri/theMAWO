@@ -34,7 +34,11 @@ class AppState extends ChangeNotifier {
 
   bool get onboardingComplete => hasSeenIntro && hasSeenTour;
 
-  static const phaseThresholds = [0, 50, 150, 300, 500];
+  List<int> get phaseThresholds {
+    final habits = this.habits.where((h) => h.type == 'daily').length;
+    if (habits == 0) return [0, 1, 2, 3, 4];
+    return List.generate(5, (index) => index == 0 ? 0 : habits * 30 * (index * (index + 1) ~/ 2));
+  }
   bool get hapticsEnabled => settings['hapticsEnabled'] ?? true;
   bool get completionFxEnabled => settings['completionFxEnabled'] ?? true;
 
@@ -68,7 +72,10 @@ class AppState extends ChangeNotifier {
         debugPrint('Error loading data: $e');
       }
     }
-    // Reminders are disabled in the first reliable release.
+    final notificationService = NotificationService();
+    notificationService.setTimeZone(settings['timezone'] ?? 'Asia/Kolkata');
+    await notificationService.initializeNotifications();
+    await rescheduleAllNotifications();
     notifyListeners();
   }
 
@@ -132,6 +139,7 @@ class AppState extends ChangeNotifier {
       longestStreak = data['ls'] ?? 0;
       daysActive = data['da'] ?? 0;
       await saveData();
+      await rescheduleAllNotifications();
       notifyListeners();
     } catch (e) {
       debugPrint('Error importing data: $e');
@@ -148,9 +156,14 @@ class AppState extends ChangeNotifier {
 
   void setUserName(String name) { user['name'] = name; saveData(); notifyListeners(); }
   Future<void> setEODSettings(bool enabled, [String? time]) async {
-    // Kept for data compatibility; reminder controls are intentionally disabled.
-    settings['eodEnabled'] = false;
+    settings['eodEnabled'] = enabled;
     if (time != null) settings['eodTime'] = time;
+    final service = NotificationService();
+    if (enabled) {
+      await service.scheduleEndOfDayReminder(time: settings['eodTime']);
+    } else {
+      await service.cancelEndOfDayReminder();
+    }
     await saveData();
     notifyListeners();
   }
@@ -163,6 +176,10 @@ class AppState extends ChangeNotifier {
   void setFeedbackSettings({bool? haptics, bool? completionFx}) { if (haptics != null) settings['hapticsEnabled'] = haptics; if (completionFx != null) settings['completionFxEnabled'] = completionFx; saveData(); notifyListeners(); }
 
   Future<void> eraseAllData() async {
+    for (final habit in habits) {
+      await NotificationService().cancelHabitNotifications(habit.id);
+    }
+    await NotificationService().cancelEndOfDayReminder();
     habits = [];
     completions = [];
     user = {'name': '', 'createdAt': DateTime.now().millisecondsSinceEpoch};
@@ -191,7 +208,7 @@ class AppState extends ChangeNotifier {
       totalXP += xpDelta;
       totalCompletions++;
     }
-    level = (totalXP / 50).toInt() + 1;
+    level = ((totalXP ~/ 100) + 1).clamp(1, 10).toInt();
     longestStreak = getMaxStreak();
     daysActive = getActiveDays();
     if (!wasCompleted) badgeId = _awardBadgeIfNeeded();
@@ -238,9 +255,20 @@ class AppState extends ChangeNotifier {
 
   int getMaxStreak() => habits.isEmpty ? 0 : habits.map((h) => getStreak(h.id)).reduce((a, b) => a > b ? a : b);
   int getActiveDays() => completions.map((c) => c.date).toSet().length;
-  void addHabit(Habit habit) { habits.add(habit); _updateHabitNotifications(habit); saveData(); notifyListeners(); }
+  void addHabit(Habit habit) {
+    habits.add(habit);
+    _updateHabitNotifications(habit);
+    saveData();
+    notifyListeners();
+  }
   void updateHabit(String id, Habit updated) { final index = habits.indexWhere((h) => h.id == id); if (index != -1) { habits[index] = updated; _updateHabitNotifications(updated); saveData(); notifyListeners(); } }
-  void deleteHabit(String id) { habits.removeWhere((h) => h.id == id); completions.removeWhere((c) => c.habitId == id); saveData(); notifyListeners(); }
+  void deleteHabit(String id) {
+    NotificationService().cancelHabitNotifications(id);
+    habits.removeWhere((h) => h.id == id);
+    completions.removeWhere((c) => c.habitId == id);
+    saveData();
+    notifyListeners();
+  }
   Future<void> _updateHabitNotifications(Habit habit) async {
     if (!NotificationService.enabled) return;
     final ns = NotificationService();
@@ -248,5 +276,9 @@ class AppState extends ChangeNotifier {
     if (habit.notif?.enabled == true) {
       await ns.scheduleNotification(habitId: habit.id, habitName: habit.name, time: habit.notif!.time, days: habit.notif!.days, followup: habit.notif!.followup, goalMinutes: habit.goalMinutes, isOneTime: habit.type == 'onetime');
     }
+  }
+
+  Future<void> notifyHabitCreated(Habit habit) async {
+    await NotificationService().showHabitCreatedNotification(habit.name);
   }
 }

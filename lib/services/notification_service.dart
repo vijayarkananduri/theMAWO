@@ -5,9 +5,7 @@ import 'package:timezone/data/latest.dart' as tz;
 import 'package:flutter/services.dart';
 
 class NotificationService {
-  // Reminders are intentionally disabled for the first reliable release.
-  // Keep this service isolated so scheduling can be rebuilt later.
-  static const bool enabled = false;
+  static const bool enabled = true;
   static final NotificationService _instance = NotificationService._internal();
   factory NotificationService() => _instance;
   NotificationService._internal();
@@ -60,6 +58,8 @@ class NotificationService {
       importance: Importance.max,
     ));
 
+    await androidPlugin?.requestNotificationsPermission();
+
     await androidPlugin?.createNotificationChannel(const AndroidNotificationChannel(
       'mawo_general',
       'General Notifications',
@@ -80,6 +80,26 @@ class NotificationService {
       id,
       title,
       body,
+      const NotificationDetails(
+        android: AndroidNotificationDetails(
+          'mawo_general',
+          'General Notifications',
+          channelDescription: 'Standard MAWO notifications',
+          importance: Importance.max,
+          priority: Priority.high,
+        ),
+        iOS: DarwinNotificationDetails(),
+      ),
+    );
+  }
+
+  Future<void> showHabitCreatedNotification(String habitName) async {
+    if (!enabled) return;
+    if (!_initialized) await initializeNotifications();
+    await _plugin.show(
+      900000003,
+      'MAWO // Habit created',
+      '$habitName is now part of your signal.',
       const NotificationDetails(
         android: AndroidNotificationDetails(
           'mawo_general',

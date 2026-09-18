@@ -15,9 +15,9 @@ class _OnboardingTourScreenState extends State<OnboardingTourScreen> {
   int _page = 0;
 
   final _steps = const [
-    ('01', 'BUILD YOUR SIGNAL', 'Add one small daily habit. MAWO learns from consistency, not perfection.'),
-    ('02', 'CHECK IN + EVOLVE', 'Tap a habit when it is done. Earn Fragments and watch your interface change.'),
-    ('03', 'KEEP IT ALIVE', 'MAWO currently works through reliable in-app check-ins. Reminders are coming soon.'),
+    ('01', 'FRAGMENTS // DAILY SIGNAL', 'Complete a habit and earn +1 Fragment. Fragments measure consistency and warm the interface with a small directional glow.'),
+    ('02', 'XP // YOUR EFFORT', 'XP measures the value of what you do. Every 100 XP sends a ripple through MAWO, then softens its corners and deepens its shape.'),
+    ('03', 'TWO CURRENCIES. ONE SIGNAL.', 'Fragments warm the app. XP shapes it. Optional reminders help you check in without spam. Creating a habit sends a test notification so you can verify them.'),
   ];
 
   Future<void> _next() async {

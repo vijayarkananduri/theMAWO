@@ -85,7 +85,7 @@ class StatsScreen extends StatelessWidget {
                                 children: [
                                   Container(
                                     width: double.infinity,
-                                    height: h.toDouble().clamp(3, 60),
+                                    height: h.toDouble().clamp(3, 60).toDouble(),
                                     color: AppTheme.uiColor,
                                   ),
                                   Text(

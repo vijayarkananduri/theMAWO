@@ -33,13 +33,26 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final currentLevel = context.watch<AppState>().level;
     final bgColor = isDark ? AppTheme.darkBg : AppTheme.lightBg;
     final borderColor = isDark ? AppTheme.darkBorder : AppTheme.lightBorder;
 
     return Scaffold(
-      body: _currentIndex == 0
-          ? HomeContent(onAddHabit: () => setState(() => _currentIndex = 1))
-          : _screens[_currentIndex],
+      body: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 1500),
+        switchInCurve: Curves.easeOutCubic,
+        switchOutCurve: Curves.easeInCubic,
+        transitionBuilder: (child, animation) => ScaleTransition(
+          scale: Tween<double>(begin: 1.0, end: 1.02).animate(animation),
+          child: FadeTransition(opacity: animation, child: child),
+        ),
+        child: KeyedSubtree(
+          key: ValueKey('level-$currentLevel-$_currentIndex'),
+          child: _currentIndex == 0
+              ? HomeContent(onAddHabit: () => setState(() => _currentIndex = 1))
+              : _screens[_currentIndex],
+        ),
+      ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           border: Border(top: BorderSide(color: borderColor)),
@@ -115,7 +128,8 @@ class HomeContent extends StatelessWidget {
     return Consumer<AppState>(
       builder: (context, appState, _) {
         final isDark = Theme.of(context).brightness == Brightness.dark;
-        final bgColor = isDark ? AppTheme.darkBg : AppTheme.lightBg;
+        final visual = MawoVisualState(phase: appState.phaseIndex, level: appState.level, dark: isDark);
+        final bgColor = visual.background;
         final muteColor = isDark ? AppTheme.darkMuted : AppTheme.lightMuted;
 
         return NotificationListener<ScrollUpdateNotification>(
@@ -210,19 +224,15 @@ class PhaseCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final borderColor = isDark ? AppTheme.darkBorder : AppTheme.lightBorder;
-    final surfaceColor = isDark ? AppTheme.darkSurface : AppTheme.lightSurface;
+    final visual = MawoVisualState(phase: appState.phaseIndex, level: appState.level, dark: isDark);
+    final borderColor = visual.accent.withOpacity(0.35);
+    final surfaceColor = visual.surface;
     final textColor = isDark ? AppTheme.darkText : AppTheme.lightText;
     final muteColor = isDark ? AppTheme.darkMuted : AppTheme.lightMuted;
     final dimColor = isDark ? AppTheme.darkDim : AppTheme.lightDim;
 
-    final phases = [
-      {'num': 1, 'name': 'Fresh Soul', 'min': 0},
-      {'num': 2, 'name': 'Warm Ember', 'min': 50},
-      {'num': 3, 'name': 'Radiant Core', 'min': 150},
-      {'num': 4, 'name': 'Deep Aura', 'min': 300},
-      {'num': 5, 'name': 'Eclipse King', 'min': 500},
-    ];
+    final phaseNames = ['Fresh Soul', 'Warm Ember', 'Radiant Core', 'Deep Aura', 'Eclipse King'];
+    final phases = List.generate(5, (i) => {'num': i + 1, 'name': phaseNames[i], 'min': appState.phaseThresholds[i]});
 
     int currentPhaseIdx = 0;
     for (int i = phases.length - 1; i >= 0; i--) {
@@ -240,12 +250,19 @@ class PhaseCard extends StatelessWidget {
         ? (appState.totalFragments - (phase['min'] as int)) /
             ((nextPhase['min'] as int) - (phase['min'] as int))
         : 1.0;
-    progress = progress.clamp(0.0, 1.0);
+    progress = progress.clamp(0.0, 1.0).toDouble();
 
     return Container(
       decoration: BoxDecoration(
         border: Border.all(color: borderColor),
         color: surfaceColor,
+        borderRadius: BorderRadius.circular(visual.radius),
+        boxShadow: visual.shadows,
+        gradient: LinearGradient(
+          begin: visual.warmthOrigin,
+          end: Alignment(-visual.warmthOrigin.x, -visual.warmthOrigin.y),
+          colors: [visual.accent.withOpacity(0.12), surfaceColor, surfaceColor],
+        ),
       ),
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -259,10 +276,10 @@ class PhaseCard extends StatelessWidget {
                 children: [
                   Text(
                     'PHASE 0${phase['num']} //',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontFamily: AppTheme.spaceMono,
                       fontSize: 9,
-                      color: AppTheme.uiColor,
+                      color: visual.accent,
                       letterSpacing: 0.12,
                     ),
                   ),
@@ -282,11 +299,11 @@ class PhaseCard extends StatelessWidget {
                 children: [
                   Text(
                     appState.totalFragments.toString(),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontFamily: AppTheme.spaceMono,
                       fontSize: 13,
                       fontWeight: FontWeight.w700,
-                      color: AppTheme.uiColor,
+                      color: visual.accent,
                     ),
                   ),
                   Text(
@@ -314,8 +331,7 @@ class PhaseCard extends StatelessWidget {
             child: LinearProgressIndicator(
               value: progress,
               backgroundColor: isDark ? AppTheme.darkDim : AppTheme.lightDim,
-              valueColor:
-                  const AlwaysStoppedAnimation<Color>(AppTheme.uiColor),
+              valueColor: AlwaysStoppedAnimation<Color>(visual.accent),
               minHeight: 3,
             ),
           ),
@@ -638,7 +654,7 @@ class _HabitItemState extends State<HabitItem> with SingleTickerProviderStateMix
               ? '// New mark acquired: ${result.badgeId}'
               : result.dailyCycleComplete
                   ? '// Daily cycle complete. All signals received.'
-                  : '+1 fragment  ·  +${result.xpDelta} XP';
+                  : '+1 fragment  ·  +${result.xpDelta} XP  // warmth growing';
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(message),
@@ -654,8 +670,10 @@ class _HabitItemState extends State<HabitItem> with SingleTickerProviderStateMix
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final borderColor = isDark ? AppTheme.darkBorder : AppTheme.lightBorder;
-    final surfaceColor = isDark ? AppTheme.darkSurface : AppTheme.lightSurface;
+    final appState = context.read<AppState>();
+    final visual = MawoVisualState(phase: appState.phaseIndex, level: appState.level, dark: isDark);
+    final borderColor = visual.accent.withOpacity(0.35);
+    final surfaceColor = visual.surface;
     final textColor = isDark ? AppTheme.darkText : AppTheme.lightText;
     final muteColor = isDark ? AppTheme.darkMuted : AppTheme.lightMuted;
 
@@ -674,7 +692,8 @@ class _HabitItemState extends State<HabitItem> with SingleTickerProviderStateMix
             color: widget.isCompleted ? AppTheme.uiColor : borderColor,
             width: widget.isCompleted ? 1.5 : 1,
           ),
-          boxShadow: widget.isCompleted ? [BoxShadow(color: AppTheme.uiColor.withOpacity(0.18), blurRadius: 12)] : null,
+          borderRadius: BorderRadius.circular(visual.radius),
+          boxShadow: widget.isCompleted ? [BoxShadow(color: visual.accent.withOpacity(0.32), blurRadius: 12)] : visual.shadows,
         ),
         child: Row(
           children: [
@@ -702,7 +721,7 @@ class _HabitItemState extends State<HabitItem> with SingleTickerProviderStateMix
                       fontFamily: AppTheme.spaceMono,
                       fontSize: 11,
                       fontWeight: FontWeight.w700,
-                      color: widget.isCompleted ? AppTheme.uiColor : textColor,
+                      color: widget.isCompleted ? visual.accent : textColor,
                       decoration: widget.isCompleted ? TextDecoration.lineThrough : null,
                     ),
                   ),
@@ -719,12 +738,12 @@ class _HabitItemState extends State<HabitItem> with SingleTickerProviderStateMix
               ),
             ),
             if (widget.isCompleted)
-              const Text(
+              Text(
                 '+1 ◆',
                 style: TextStyle(
                   fontFamily: AppTheme.spaceMono,
                   fontSize: 10,
-                  color: AppTheme.uiColor,
+                  color: visual.accent,
                   fontWeight: FontWeight.w700,
                 ),
               ),

@@ -542,6 +542,27 @@ class _AddHabitModalState extends State<AddHabitModal> {
               ),
             ],
 
+            _FormField(
+              label: 'REMINDER //',
+              child: Column(
+                children: [
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('ENABLE REMINDER', style: TextStyle(fontFamily: AppTheme.spaceMono, fontSize: 11)),
+                    value: _notifEnabled,
+                    activeColor: AppTheme.uiColor,
+                    onChanged: (value) => setState(() => _notifEnabled = value),
+                  ),
+                  if (_notifEnabled)
+                    Row(
+                      children: [
+                        Expanded(child: Text(_timeController.text, style: const TextStyle(fontFamily: AppTheme.spaceMono, fontSize: 13))),
+                        TextButton(onPressed: _pickReminderTime, child: const Text('SET TIME', style: TextStyle(fontFamily: AppTheme.spaceMono, fontSize: 10, color: AppTheme.uiColor))),
+                      ],
+                    ),
+                ],
+              ),
+            ),
             const SizedBox(height: 32),
 
             // Submit Button
@@ -556,14 +577,19 @@ class _AddHabitModalState extends State<AddHabitModal> {
                   type: _selectedType,
                   category: _selectedCategory,
                   goalMinutes: int.tryParse(_goalController.text) ?? 0,
-                  // Reminders are disabled for the first reliable release.
-                  notif: null,
+                  notif: NotificationSettings(
+                    enabled: _notifEnabled,
+                    time: _toStoredTime(_timeController.text),
+                    days: _selectedDays,
+                    followup: _followupEnabled,
+                  ),
                 );
 
                 if (widget.habit != null) {
                   widget.appState.updateHabit(widget.habit!.id, habit);
                 } else {
                   widget.appState.addHabit(habit);
+                  widget.appState.notifyHabitCreated(habit);
                 }
 
                 Navigator.pop(context);
