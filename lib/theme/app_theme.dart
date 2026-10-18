@@ -5,6 +5,7 @@ class AppTheme {
   // Font families
   static const String spaceMono = 'SpaceMono';
   static const String spaceGrotesk = 'SpaceGrotesk';
+  static const String poppins = 'Poppins';
   static const String caveat = 'Caveat';
 
   // UI accent color (Orange from reference)
@@ -47,7 +48,7 @@ class AppTheme {
           error: darkErr,
           outline: darkBorder,
         ),
-        textTheme: GoogleFonts.spaceGroteskTextTheme(
+        textTheme: GoogleFonts.poppinsTextTheme(
           ThemeData.dark().textTheme,
         ).apply(
           bodyColor: darkText,
@@ -82,7 +83,7 @@ class AppTheme {
           error: lightErr,
           outline: lightBorder,
         ),
-        textTheme: GoogleFonts.spaceGroteskTextTheme(
+        textTheme: GoogleFonts.poppinsTextTheme(
           ThemeData.light().textTheme,
         ).apply(
           bodyColor: lightText,

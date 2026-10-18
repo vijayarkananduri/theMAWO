@@ -108,7 +108,7 @@ class _BootScreenState extends State<BootScreen>
 
             // Typing animation for "Let's make your habits,"
             TypingAnimation(
-              text: "Let's make your habits,",
+                text: "Catch the itch before",
               textController: _textController,
               textColor: textColor,
               hapticsEnabled: widget.hapticsEnabled,
@@ -121,11 +121,11 @@ class _BootScreenState extends State<BootScreen>
               opacity: Tween<double>(begin: 0, end: 1).animate(
                 CurvedAnimation(parent: _aliveController, curve: Curves.easeInOut),
               ),
-              child: const Text(
-                'alive.',
+                child: const Text(
+                  'it becomes the old habit.',
                 style: TextStyle(
                   fontFamily: AppTheme.caveat,
-                  fontSize: 64,
+                  fontSize: 32,
                   fontWeight: FontWeight.w700,
                   color: AppTheme.uiColor,
                 ),
@@ -140,7 +140,7 @@ class _BootScreenState extends State<BootScreen>
                 CurvedAnimation(parent: _contentController, curve: Curves.easeIn),
               ),
               child: Text(
-                '// Complete habits → earn Fragments.\n// Fragments evolve your interface.',
+                  '// Tap when you feel the itch.\n// Surf it. Choose one small good action.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontFamily: AppTheme.spaceMono,
@@ -170,7 +170,7 @@ class _BootScreenState extends State<BootScreen>
                     color: AppTheme.uiColor,
                   ),
                   child: const Text(
-                    'BEGIN',
+                    'GET STARTED',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontFamily: AppTheme.spaceMono,

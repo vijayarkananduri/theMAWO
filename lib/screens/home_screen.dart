@@ -10,6 +10,7 @@ import 'package:mawo/screens/badges_screen.dart';
 import 'package:mawo/screens/stats_screen.dart';
 import 'package:mawo/screens/settings_screen.dart';
 import 'package:mawo/services/feedback_service.dart';
+import 'package:mawo/screens/itch_flow_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -174,6 +175,8 @@ class HomeContent extends StatelessWidget {
                     const SizedBox(height: 16),
 
                     // Phase Card
+                    ItchCard(appState: appState),
+                    const SizedBox(height: 20),
                     PhaseCard(appState: appState),
                     const SizedBox(height: 20),
 
@@ -750,6 +753,42 @@ class _HabitItemState extends State<HabitItem> with SingleTickerProviderStateMix
           ],
         ),
         ),
+      ),
+    );
+  }
+}
+
+
+class ItchCard extends StatelessWidget {
+  final AppState appState;
+  const ItchCard({super.key, required this.appState});
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final text = dark ? AppTheme.darkText : AppTheme.lightText;
+    final muted = dark ? AppTheme.darkMuted : AppTheme.lightMuted;
+    return InkWell(
+      onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ItchFlowScreen())),
+      borderRadius: BorderRadius.circular(22),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(20, 20, 18, 18),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(22),
+          gradient: LinearGradient(colors: [AppTheme.uiColor.withOpacity(.26), AppTheme.uiColor.withOpacity(.06)], begin: Alignment.topLeft, end: Alignment.bottomRight),
+          border: Border.all(color: AppTheme.uiColor.withOpacity(.5)),
+          boxShadow: [BoxShadow(color: AppTheme.uiColor.withOpacity(.14), blurRadius: 26, spreadRadius: 2)],
+        ),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            Container(width: 48, height: 48, decoration: BoxDecoration(shape: BoxShape.circle, color: AppTheme.uiColor, boxShadow: [BoxShadow(color: AppTheme.uiColor.withOpacity(.45), blurRadius: 18)]), child: const Icon(Icons.bolt, color: Colors.black, size: 27)),
+            const SizedBox(width: 14),
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('FEELING THE ITCH?', style: TextStyle(fontFamily: AppTheme.spaceMono, fontSize: 10, color: muted, letterSpacing: 1.1)), const SizedBox(height: 3), Text('Interrupt it gently.', style: TextStyle(fontFamily: AppTheme.spaceGrotesk, fontSize: 22, fontWeight: FontWeight.w700, color: text))])),
+            const Icon(Icons.arrow_forward, color: AppTheme.uiColor),
+          ]),
+          const SizedBox(height: 18),
+          Row(children: [Text('${appState.itchCount} logged', style: TextStyle(fontFamily: AppTheme.spaceMono, fontSize: 10, color: muted)), const SizedBox(width: 18), Text('${appState.surfedCount} surfed', style: TextStyle(fontFamily: AppTheme.spaceMono, fontSize: 10, color: muted)), const Spacer(), Text('MOMENTUM ${appState.momentum}', style: const TextStyle(fontFamily: AppTheme.spaceMono, fontSize: 10, color: AppTheme.uiColor, fontWeight: FontWeight.w700))]),
+        ]),
       ),
     );
   }
