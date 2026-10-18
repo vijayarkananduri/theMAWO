@@ -170,23 +170,3 @@ For major changes, open an issue first.
 *[Website](https://mawo.netlify.app) · [Research Paper](https://zenodo.org/records/16889414) · [Portfolio](https://vijayarka.netlify.app)*
 
 </div>
-
-
-## // Interruption Loop MVP
-
-The current Android build adds a calm, offline-first core loop for catching an unwanted habit before it becomes automatic:
-
-> **ITCH → intensity → 90-second surf → one small action → feeling check → momentum**
-
-The new surface uses Space Grotesk for expressive headlines, Poppins as the soft reading face, warm amber/orange light, a restrained glow, and a subtle grain texture. Existing habits, reminders, logs, stats, badges, settings, and local persistence remain available.
-
-## // APK Build
-
-[`.github/workflows/build.yml`](.github/workflows/build.yml) runs on pushes to `main`, version tags (`v*`), and manual dispatch. It analyzes the Dart source, builds the release APK, and uploads the `mawo-apk` artifact. Version tags also create a GitHub Release containing the APK.
-
-```bash
-flutter pub get
-flutter build apk --release
-```
-
-Release output: `build/app/outputs/flutter-apk/app-release.apk`.

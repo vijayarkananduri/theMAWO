@@ -17,10 +17,10 @@ class _OnboardingTourScreenState extends State<OnboardingTourScreen> {
   int _page = 0;
 
   final _steps = const [
-    ('01', 'TAP THE ITCH', 'When the urge shows up, log it without judgment. The point is not perfection — it is creating one clear moment between feeling and action.'),
-    ('02', 'SURF THE WAVE', 'Breathe with a gentle 90-second timer. The peak passes. You can skip the timer whenever you need to.'),
-    ('03', 'PICK ONE SMALL ACTION', 'Choose water, a walk, breathing, reading, or another habit that feels kind and doable right now.'),
-    ('04', 'SEE YOUR MOMENTUM', 'MAWO keeps your data on-device and turns completed interruptions into evidence of growth, never a grade.'),
+    ('01', 'FRAGMENTS // DAILY SIGNAL', 'Complete a habit and earn +1 Fragment. Fragments measure consistency and warm the interface with a small directional glow.'),
+    ('02', 'XP // YOUR EFFORT', 'XP measures the value of what you do. Every 100 XP sends a ripple through MAWO, then softens its corners and deepens its shape.'),
+    ('03', 'TWO CURRENCIES. ONE SIGNAL.', 'Fragments warm the app. XP shapes it. Optional reminders help you check in without spam. Creating a habit sends a test notification so you can verify them.'),
+    ('04', 'CALIBRATE YOUR CLOCK', 'Tell MAWO the date and time shown by your real-world clock. This keeps future reminders and one-time dates aligned without relying on a hardcoded timezone.'),
   ];
 
   Future<void> _next() async {

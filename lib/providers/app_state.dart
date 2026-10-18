@@ -30,9 +30,6 @@ class AppState extends ChangeNotifier {
   int totalCompletions = 0;
   int longestStreak = 0;
   int daysActive = 0;
-  int itchCount = 0;
-  int surfedCount = 0;
-  int momentum = 0;
   late SharedPreferences _prefs;
   bool hasSeenIntro = false;
   bool hasSeenTour = false;
@@ -73,9 +70,6 @@ class AppState extends ChangeNotifier {
         totalCompletions = data['tc'] ?? 0;
         longestStreak = data['ls'] ?? 0;
         daysActive = data['da'] ?? 0;
-        itchCount = data['itchCount'] ?? 0;
-        surfedCount = data['surfedCount'] ?? 0;
-        momentum = data['momentum'] ?? 0;
       } catch (e) {
         debugPrint('Error loading data: $e');
       }
@@ -147,9 +141,6 @@ class AppState extends ChangeNotifier {
         'tc': totalCompletions,
         'ls': longestStreak,
         'da': daysActive,
-        'itchCount': itchCount,
-        'surfedCount': surfedCount,
-        'momentum': momentum,
       });
 
   Future<void> importData(String json) async {
@@ -166,9 +157,6 @@ class AppState extends ChangeNotifier {
       totalCompletions = data['tc'] ?? 0;
       longestStreak = data['ls'] ?? 0;
       daysActive = data['da'] ?? 0;
-      itchCount = data['itchCount'] ?? 0;
-      surfedCount = data['surfedCount'] ?? 0;
-      momentum = data['momentum'] ?? 0;
       await saveData();
       await rescheduleAllNotifications();
       notifyListeners();
@@ -222,7 +210,7 @@ class AppState extends ChangeNotifier {
     completions = [];
     user = {'name': '', 'createdAt': DateTime.now().millisecondsSinceEpoch};
     settings = {'eodEnabled': false, 'eodTime': '21:00', 'isDark': true, 'timezone': 'UTC', 'clockReference': null, 'clockDeviceMillis': null, 'hapticsEnabled': true, 'completionFxEnabled': true};
-    totalFragments = 0; totalXP = 0; level = 1; badges = []; totalCompletions = 0; longestStreak = 0; daysActive = 0; itchCount = 0; surfedCount = 0; momentum = 0;
+    totalFragments = 0; totalXP = 0; level = 1; badges = []; totalCompletions = 0; longestStreak = 0; daysActive = 0;
     await _prefs.remove('mawo_data');
     notifyListeners();
   }
@@ -382,21 +370,5 @@ class AppState extends ChangeNotifier {
 
   Future<void> notifyHabitCreated(Habit habit) async {
     await NotificationService().showHabitCreatedNotification(habit.name);
-  }
-
-  Future<void> logItchEpisode({
-    required String intensity,
-    required String activity,
-    required String feeling,
-    required bool surfCompleted,
-  }) async {
-    itchCount += 1;
-    if (surfCompleted) surfedCount += 1;
-    momentum += feeling == 'calm' || feeling == 'satisfied' ? 2 : 1;
-    totalFragments += 1;
-    totalXP += surfCompleted ? 3 : 1;
-    level = ((totalXP ~/ 100) + 1).clamp(1, 10).toInt();
-    await saveData();
-    notifyListeners();
   }
 }
